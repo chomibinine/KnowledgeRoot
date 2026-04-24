@@ -33,6 +33,14 @@
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
         @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
 
+        /* 애니메이션 업그레이드: 오답 시 흔들림(Shake) 효과 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
         .btn-active:active { transform: scale(0.92); }
         .etymology-text { font-size: 1.35rem; line-height: 1.6; word-break: keep-all; color: #1e40af; font-weight: 700; }
     </style>
@@ -45,7 +53,7 @@
                 <div class="bg-[#2c3e50] p-2 rounded-xl shadow-md"><i data-lucide="book-marked" class="text-white w-5 h-5"></i></div>
                 <h1 class="text-xl font-black text-slate-900 tracking-tight">한자 <span class="text-[#27ae60]">뿌리</span></h1>
             </div>
-            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active"><i data-lucide="home" class="w-5 h-5"></i></button>
+            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-[#27ae60] transition-colors"><i data-lucide="home" class="w-5 h-5"></i></button>
         </div>
     </header>
 
@@ -94,17 +102,18 @@
             <div class="text-center">
                 <span id="sessionDayLabel" class="text-[10px] font-black text-[#27ae60] uppercase tracking-widest">DAY 01</span>
                 <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
-                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-[#27ae60]">학습</button>
-                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400">테스트</button>
+                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-[#27ae60] transition-all">학습</button>
+                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400 transition-all">테스트</button>
                 </div>
             </div>
             <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-[#27ae60] text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">20</span></div>
         </div>
 
-        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+            
             <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div id="cardWrapper" class="w-full slide-in">
-                    <div class="flip-card cursor-pointer" id="flashcard" onclick="app.handleCardClick()">
+                    <div class="flip-card cursor-pointer" id="flashcard" role="button" tabindex="0" onclick="app.handleCardClick()">
                         <div class="flip-card-inner">
                             <div class="flip-card-front">
                                 <span id="lLevelTag" class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black mb-6 uppercase tracking-tighter">LEVEL</span>
@@ -130,10 +139,29 @@
             </div>
 
             <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
-                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-6 mt-4 border border-slate-200 text-center relative overflow-hidden">
-                    <h3 id="qHanja" class="text-8xl font-black text-slate-900 leading-none mb-8"></h3>
-                    <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-6 mt-4 border border-slate-200 text-center relative overflow-hidden shrink-0">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-[#27ae60] transition-all duration-300"></div></div>
+                    <h3 id="qHanja" class="text-8xl font-black text-slate-900 leading-none mb-6 mt-4"></h3>
                 </div>
+                <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
+            </div>
+
+            <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
+                <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="award" class="text-[#27ae60] w-12 h-12"></i></div>
+                <h2 class="text-4xl font-black text-slate-900 mb-1">학습 완료!</h2>
+                <div class="flex items-baseline justify-center mb-8 gap-1"><span id="fCorrect" class="text-[#27ae60] text-6xl font-black leading-none">0</span><span class="text-slate-300 text-3xl font-black">/</span><span id="fTotal" class="text-slate-300 text-3xl font-black">20</span></div>
+                <div id="wrongReview" class="w-full max-w-xs bg-rose-50 rounded-2xl p-6 border border-rose-100 mb-8 hidden overflow-y-auto max-h-48 text-left"><ul id="wrongList" class="space-y-2"></ul></div>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-[#2c3e50] text-white rounded-3xl font-black shadow-xl">목록으로 돌아가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
+            <h4 class="text-xl font-black text-slate-900 mb-2">학습을 종료할까요?</h4>
+            <div class="grid grid-cols-2 gap-3 mt-8">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-4 bg-slate-100 rounded-2xl font-black text-slate-500 text-sm">계속하기</button>
+                <button onclick="app.exitNow()" class="py-4 bg-rose-500 rounded-2xl font-black text-white text-sm">종료</button>
             </div>
         </div>
     </div>
@@ -141,7 +169,7 @@
     <script>
         const app = {
             db: [], history: {}, sessionWords: [], sessionIdx: 0,
-            mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            score: 0, wrongs: [], mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '', isAns: false,
 
             async init() {
                 this.loadHistory();
@@ -159,32 +187,34 @@
                 label.textContent = "데이터 읽는 중..."; 
                 this.db = [];
                 
-                const noCache = `?v=${new Date().getTime()}`;
-                
                 try {
+                    // 데이터 페칭 최적화 (캐시 무효화 제거 및 에러 시 조기 종료)
                     for (let i = 1; i <= 40; i++) {
-                        let fileName = `./level${lvl}_part${i}.json`;
-                        let res = await fetch(fileName + noCache);
-                        
-                        if (!res.ok) {
-                            fileName = `./level${lvl}_part${i}_final.json`;
-                            res = await fetch(fileName + noCache);
-                        }
-
+                        let res = await fetch(`./level${lvl}_part${i}.json`);
                         if (res.ok) {
                             const json = await res.json();
-                            this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
+                            this.db.push(...(Array.isArray(json) ? json : (json.hanja || [])));
                         } else {
-                            if (i > 1) break; 
-                            const fallback = await fetch(`./level${lvl}.json` + noCache);
-                            if (fallback.ok) {
-                                const fbJson = await fallback.json();
-                                this.db = Array.isArray(fbJson) ? fbJson : (fbJson.hanja || []);
+                            // part 파일이 없으면 _final 확인 후 종료
+                            const finalRes = await fetch(`./level${lvl}_part${i}_final.json`);
+                            if(finalRes.ok) {
+                                const json = await finalRes.json();
+                                this.db.push(...(Array.isArray(json) ? json : (json.hanja || [])));
+                            } else if (i === 1) {
+                                // 1번도 없으면 통짜 파일 확인
+                                const fbRes = await fetch(`./level${lvl}.json`);
+                                if(fbRes.ok) {
+                                    const json = await fbRes.json();
+                                    this.db.push(...(Array.isArray(json) ? json : (json.hanja || [])));
+                                }
                             }
-                            break;
+                            break; // 404 에러 파티 방지
                         }
                     }
                     
+                    // 중복 제거
+                    this.db = this.db.filter((v,i,a)=>a.findIndex(t=>t.hanja===v.hanja)===i);
+
                     if (this.db.length > 0) { 
                         label.textContent = `총 ${this.db.length.toLocaleString()}자 활성화됨`; 
                         this.renderGrid(); 
@@ -208,6 +238,9 @@
                 const size = parseInt(document.getElementById('dailyAmount').value);
                 const days = Math.ceil(this.db.length / size);
                 let completed = 0;
+                
+                // 렌더링 최적화
+                const frag = document.createDocumentFragment();
                 for(let i=0; i<days; i++){
                     const key = `lvl${document.getElementById('courseLevel').value}_day${i+1}`;
                     const score = this.history[key];
@@ -216,8 +249,10 @@
                     card.className = "bg-white p-6 rounded-[2.2rem] border border-slate-200 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden";
                     card.onclick = () => this.startSession(this.db.slice(i*size, (i+1)*size), i+1, key);
                     card.innerHTML = `${score ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}<div class="w-10 h-10 mx-auto bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 font-black text-xs mb-3">${i+1}</div><h3 class="font-black text-slate-800 text-lg">Day ${i+1}</h3><p class="text-[10px] font-black text-[#27ae60] mt-1 uppercase">${score || 'Ready'}</p>`;
-                    grid.appendChild(card);
+                    frag.appendChild(card);
                 }
+                grid.appendChild(frag);
+                
                 document.getElementById('totalProgressText').textContent = `${Math.round((completed/days)*100 || 0)}% Done`;
                 this.ri();
             },
@@ -229,6 +264,7 @@
                 if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { this.isSwiping = true; if(dx > 0) this.navCard(-1); else this.navCard(1); }
             },
             handleCardClick() { if (!this.isSwiping) document.getElementById('flashcard').classList.toggle('flipped'); },
+            
             startSession(words, dayNum, key) {
                 this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
                 document.getElementById('sessionLayer').classList.remove('hidden');
@@ -236,6 +272,7 @@
                 document.getElementById('sessionTotal').textContent = words.length;
                 this.renderStudy();
             },
+            
             renderStudy() {
                 const w = this.sessionWords[this.sessionIdx];
                 const card = document.getElementById('flashcard');
@@ -251,6 +288,7 @@
                 document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "테스트 시작" : "다음 한자";
                 this.ri();
             },
+            
             navCard(dir) {
                 const wrap = document.getElementById('cardWrapper');
                 if(dir === -1 && this.sessionIdx === 0) return;
@@ -268,37 +306,71 @@
                     wrap.classList.add('slide-in');
                 }, 300);
             },
+            
             switchMode(m) {
                 this.mode = m;
-                document.getElementById('studyUI').classList.add('hidden');
-                document.getElementById('quizUI').classList.add('hidden');
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById(`${m}UI`).classList.remove('hidden');
-                if(m === 'quiz') this.loadQuiz();
+                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.loadQuiz(); }
+                else if(m === 'study') { this.sessionIdx = 0; this.renderStudy(); }
             },
+            
             loadQuiz() {
                 if(this.sessionIdx >= this.sessionWords.length) { this.showResult(); return; }
+                this.isAns = false;
                 const w = this.sessionWords[this.sessionIdx];
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                document.getElementById('qBar').style.width = `${(this.sessionIdx/this.sessionWords.length)*100}%`;
                 document.getElementById('qHanja').textContent = w.hanja;
-                const opts = [w.meaning, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>x.meaning)].sort(()=>Math.random()-0.5);
-                const cont = document.getElementById('qOptions'); cont.innerHTML = '';
+                
+                const opts = [{t: w.meaning, c: true}, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t: x.meaning, c: false}))].sort(()=>Math.random()-0.5);
+                const cont = document.getElementById('qOptions'); 
+                cont.innerHTML = '';
+                
+                const frag = document.createDocumentFragment();
                 opts.forEach(o => {
                     const b = document.createElement('button');
-                    b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center";
-                    b.textContent = o;
+                    b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center transition-all";
+                    b.textContent = o.t;
                     b.onclick = () => {
-                        if(o === w.meaning) { b.classList.replace('border-slate-200','border-emerald-500'); setTimeout(()=>{ this.sessionIdx++; this.loadQuiz(); },500); }
-                        else b.classList.replace('border-slate-200','border-rose-500');
+                        if(this.isAns) return;
+                        this.isAns = true;
+                        if(o.c) { 
+                            b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-[#27ae60] bg-emerald-50 text-emerald-800 font-black flex items-center";
+                            this.score++; 
+                            setTimeout(()=>{ this.sessionIdx++; this.loadQuiz(); }, 600); 
+                        } else { 
+                            b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-rose-500 bg-rose-50 text-rose-700 font-black flex items-center animate-shake";
+                            this.wrongs.push(w);
+                            setTimeout(()=>{ this.sessionIdx++; this.loadQuiz(); }, 1000); 
+                        }
                     };
-                    cont.appendChild(b);
+                    frag.appendChild(b);
                 });
+                cont.appendChild(frag);
             },
+            
+            // UI 업그레이드: 테스트 완료 후 결과창 및 오답노트 표시
             showResult() {
-                this.history[this.currentKey] = "Done";
+                this.mode = 'result'; 
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('resultUI').classList.remove('hidden');
+                
+                document.getElementById('fCorrect').textContent = this.score;
+                document.getElementById('fTotal').textContent = this.sessionWords.length;
+                this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
                 localStorage.setItem('hanja_roots_history', JSON.stringify(this.history));
-                this.exitNow();
+                
+                const list = document.getElementById('wrongList'); list.innerHTML = '';
+                if(this.wrongs.length > 0) {
+                    document.getElementById('wrongReview').classList.remove('hidden');
+                    list.innerHTML = this.wrongs.map(w => `<li class="bg-white p-3 rounded-xl border border-rose-100 flex items-center gap-4"><span class="font-black text-slate-800 text-2xl">${w.hanja}</span><div class="flex flex-col"><span class="text-rose-500 text-[12px] font-bold">${w.meaning}</span><span class="text-slate-400 text-[10px] font-medium">${w.radical} / ${w.strokes}</span></div></li>`).join('');
+                }
+                this.ri();
             },
-            confirmExit() { if(confirm("학습을 종료할까요?")) this.exitNow(); },
-            exitNow() { document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            
+            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
+            exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
             ri() { if(window.lucide) window.lucide.createIcons(); }
         };
         window.onload = () => app.init();
