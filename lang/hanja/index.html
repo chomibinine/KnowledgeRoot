@@ -68,7 +68,7 @@
                         <option value="6">6급</option>
                         <option value="5">5급</option>
                         <option value="4">4급</option>
-                        <option value="3" selected>3급</option>
+                        <option value="3">3급</option>
                         <option value="2">2급</option>
                         <option value="1">1급</option>
                     </select>
@@ -100,13 +100,14 @@
             </div>
             <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-[#27ae60] text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">20</span></div>
         </div>
+
         <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
             <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div id="cardWrapper" class="w-full slide-in">
                     <div class="flip-card cursor-pointer" id="flashcard" onclick="app.handleCardClick()">
                         <div class="flip-card-inner">
                             <div class="flip-card-front">
-                                <span id="lLevelTag" class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black mb-6 uppercase tracking-tighter">어문회 3급</span>
+                                <span id="lLevelTag" class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black mb-6 uppercase tracking-tighter">LEVEL</span>
                                 <h2 id="lHanja" class="text-[9rem] font-black text-slate-900 leading-none mb-4"></h2>
                                 <p class="text-emerald-200 text-[10px] font-black uppercase tracking-[0.3em] absolute bottom-10">터치하여 뒤집기 / 스와이프 이동</p>
                             </div>
@@ -127,15 +128,20 @@
                     <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">다음 한자</button>
                 </div>
             </div>
+
             <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-6 mt-4 border border-slate-200 text-center relative overflow-hidden">
+                    <h3 id="qHanja" class="text-8xl font-black text-slate-900 leading-none mb-8"></h3>
+                    <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
                 </div>
+            </div>
         </div>
     </div>
 
     <script>
         const app = {
             db: [], history: {}, sessionWords: [], sessionIdx: 0,
-            score: 0, isAns: false, mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
 
             async init() {
                 this.loadHistory();
@@ -156,27 +162,27 @@
                 const noCache = `?v=${new Date().getTime()}`;
                 
                 try {
-                    // 핵심 수정 포인트: 1번부터 30번 파트까지 여유 있게 순차 탐색
-                    for (let i = 1; i <= 30; i++) {
-                        const fileName = `./level${lvl}_part${i}.json`;
-                        try {
-                            const res = await fetch(fileName + noCache);
-                            if (res.ok) {
-                                const json = await res.json();
-                                // 데이터 합치기
-                                this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
-                            } else {
-                                // 파트 번호가 중간에 끊기면 종료 (817자를 맞추기 위해 연속성이 중요)
-                                if (i > 1) break; 
-                                // 만약 part1이 없다면 단일 파일(level3.json) 시도
-                                const fallback = await fetch(`./level${lvl}.json` + noCache);
-                                if (fallback.ok) {
-                                    const fbJson = await fallback.json();
-                                    this.db = Array.isArray(fbJson) ? fbJson : (fbJson.hanja || []);
-                                }
-                                break;
+                    for (let i = 1; i <= 40; i++) {
+                        let fileName = `./level${lvl}_part${i}.json`;
+                        let res = await fetch(fileName + noCache);
+                        
+                        if (!res.ok) {
+                            fileName = `./level${lvl}_part${i}_final.json`;
+                            res = await fetch(fileName + noCache);
+                        }
+
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
+                        } else {
+                            if (i > 1) break; 
+                            const fallback = await fetch(`./level${lvl}.json` + noCache);
+                            if (fallback.ok) {
+                                const fbJson = await fallback.json();
+                                this.db = Array.isArray(fbJson) ? fbJson : (fbJson.hanja || []);
                             }
-                        } catch (e) { break; }
+                            break;
+                        }
                     }
                     
                     if (this.db.length > 0) { 
@@ -186,8 +192,12 @@
                         label.textContent = "데이터 없음"; 
                         grid.innerHTML = '';
                     }
-                } catch(e) { label.textContent = "로드 실패"; }
-                finally { status.classList.add('hidden'); this.ri(); }
+                } catch(e) { 
+                    label.textContent = "로드 실패"; 
+                } finally { 
+                    status.classList.add('hidden'); 
+                    this.ri(); 
+                }
             },
 
             loadHistory() { const h = localStorage.getItem('hanja_roots_history'); if(h) this.history = JSON.parse(h); },
@@ -212,7 +222,6 @@
                 this.ri();
             },
 
-            // 이벤트 핸들러 및 세션 로직 (이전 답변과 동일하게 유지)
             ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
             te(e) {
                 const dx = e.changedTouches[0].screenX - this.tx;
@@ -264,6 +273,29 @@
                 document.getElementById('studyUI').classList.add('hidden');
                 document.getElementById('quizUI').classList.add('hidden');
                 document.getElementById(`${m}UI`).classList.remove('hidden');
+                if(m === 'quiz') this.loadQuiz();
+            },
+            loadQuiz() {
+                if(this.sessionIdx >= this.sessionWords.length) { this.showResult(); return; }
+                const w = this.sessionWords[this.sessionIdx];
+                document.getElementById('qHanja').textContent = w.hanja;
+                const opts = [w.meaning, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>x.meaning)].sort(()=>Math.random()-0.5);
+                const cont = document.getElementById('qOptions'); cont.innerHTML = '';
+                opts.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center";
+                    b.textContent = o;
+                    b.onclick = () => {
+                        if(o === w.meaning) { b.classList.replace('border-slate-200','border-emerald-500'); setTimeout(()=>{ this.sessionIdx++; this.loadQuiz(); },500); }
+                        else b.classList.replace('border-slate-200','border-rose-500');
+                    };
+                    cont.appendChild(b);
+                });
+            },
+            showResult() {
+                this.history[this.currentKey] = "Done";
+                localStorage.setItem('hanja_roots_history', JSON.stringify(this.history));
+                this.exitNow();
             },
             confirmExit() { if(confirm("학습을 종료할까요?")) this.exitNow(); },
             exitNow() { document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
