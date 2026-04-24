@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -139,35 +138,80 @@
         </div>
     </div>
 
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
+            <h4 class="text-xl font-black text-slate-900 mb-2">학습을 종료할까요?</h4>
+            <p class="text-sm text-slate-400 font-medium mb-8">진행 상황이 저장되지 않습니다.</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-4 bg-slate-100 rounded-2xl font-black text-slate-500 text-sm">계속하기</button>
+                <button onclick="app.exitNow()" class="py-4 bg-rose-500 rounded-2xl font-black text-white text-sm">종료</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const app = {
             db: [], history: {}, sessionWords: [], sessionIdx: 0,
             score: 0, isAns: false, mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
-            fileMap: { "8": ["level8.json"], "7": ["level7_part1.json", "level7_part2.json"], "6": ["level6_part1.json", "level6_part2.json"], "5": ["level5_part1.json", "level5_part2.json"], "4": ["level4_part1.json"], "3": ["level3_part1.json"], "2": ["level2_part1.json"], "1": ["level1_part1.json"] },
 
             async init() {
                 this.loadHistory();
                 await this.loadLevelData();
                 this.ri();
             },
+            
+            // 데이터 자동 무한 로드 함수
             async loadLevelData() {
                 const lvl = document.getElementById('courseLevel').value;
                 const status = document.getElementById('statusMsg');
                 const label = document.getElementById('wordCountLabel');
-                const files = this.fileMap[lvl] || [];
-                status.classList.remove('hidden'); label.textContent = "Loading..."; this.db = [];
+                
+                status.classList.remove('hidden'); 
+                label.textContent = "Loading..."; 
+                this.db = [];
+                
                 try {
-                    for (const file of files) {
-                        const res = await fetch(`./${file}`);
-                        if(res.ok) { const json = await res.json(); this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || [])); }
+                    let partIndex = 1;
+                    
+                    while (true) {
+                        const fileName = `./level${lvl}_part${partIndex}.json`;
+                        const res = await fetch(fileName);
+                        
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
+                            partIndex++;
+                        } else {
+                            // part1 파일이 없으면 혹시 'level8.json' 형태의 단일 파일인지 한 번 더 확인
+                            if (partIndex === 1) {
+                                const fallbackRes = await fetch(`./level${lvl}.json`);
+                                if (fallbackRes.ok) {
+                                    const json = await fallbackRes.json();
+                                    this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
+                                }
+                            }
+                            break; // 404 등 파일이 없으면 반복문 탈출
+                        }
                     }
-                    if (this.db.length > 0) { label.textContent = `${this.db.length.toLocaleString()} Hanja`; this.renderGrid(); }
-                    else { label.textContent = "No Data"; }
-                } catch(e) { label.textContent = "Error"; }
-                finally { status.classList.add('hidden'); }
+                    
+                    if (this.db.length > 0) { 
+                        label.textContent = `총 ${this.db.length.toLocaleString()}자 활성화됨`; 
+                        this.renderGrid(); 
+                    } else { 
+                        label.textContent = "데이터 없음"; 
+                        document.getElementById('daysGrid').innerHTML = '';
+                    }
+                } catch(e) { 
+                    console.error(e);
+                    label.textContent = "로드 실패"; 
+                } finally { 
+                    status.classList.add('hidden'); 
+                }
             },
+            
             loadHistory() { const h = localStorage.getItem('hanja_roots_history'); if(h) this.history = JSON.parse(h); },
             resetHistory() { if(confirm("학습 기록을 삭제할까요?")) { localStorage.removeItem('hanja_roots_history'); location.reload(); } },
+            
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
                 const size = parseInt(document.getElementById('dailyAmount').value);
@@ -186,13 +230,16 @@
                 document.getElementById('totalProgressText').textContent = `${Math.round((completed/days)*100)}% Done`;
                 this.ri();
             },
+            
             ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
             te(e) {
                 const dx = e.changedTouches[0].screenX - this.tx;
                 const dy = e.changedTouches[0].screenY - this.ty;
                 if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { this.isSwiping = true; if(dx > 0) this.navCard(-1); else this.navCard(1); }
             },
+            
             handleCardClick() { if (!this.isSwiping) document.getElementById('flashcard').classList.toggle('flipped'); },
+            
             startSession(words, dayNum, key) {
                 this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
                 document.getElementById('sessionLayer').classList.remove('hidden');
@@ -200,6 +247,7 @@
                 document.getElementById('sessionTotal').textContent = words.length;
                 this.renderStudy();
             },
+            
             renderStudy() {
                 const w = this.sessionWords[this.sessionIdx];
                 const card = document.getElementById('flashcard');
@@ -215,14 +263,46 @@
                 document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "Start Test" : "Next Hanja";
                 this.ri();
             },
+            
+            // 완벽하게 수정된 애니메이션 넘기기 함수
             navCard(dir) {
                 const wrap = document.getElementById('cardWrapper');
-                if(dir === -1 && this.sessionIdx > 0) { this.sessionIdx--; this.renderStudy(); }
-                else if(dir === 1) {
-                    if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
-                    else { this.switchMode('quiz'); }
-                }
+                
+                // 더 이상 뒤로 갈 카드가 없는 경우 무시
+                if(dir === -1 && this.sessionIdx === 0) return;
+
+                // 애니메이션 방향 설정 (다음: 왼쪽으로 빠짐, 이전: 오른쪽으로 빠짐)
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                
+                // 기존 진입 애니메이션 제거 후 퇴장 애니메이션 추가
+                wrap.classList.remove('slide-in');
+                wrap.classList.add(outClass);
+
+                // CSS transition 시간(0.3s) 대기 후 데이터 변경 및 재등장
+                setTimeout(() => {
+                    if(dir === -1) { 
+                        this.sessionIdx--; 
+                        this.renderStudy(); 
+                    } else if(dir === 1) {
+                        if(this.sessionIdx < this.sessionWords.length - 1) { 
+                            this.sessionIdx++; 
+                            this.renderStudy(); 
+                        } else { 
+                            // 마지막 카드에서 넘기면 퀴즈로 이동
+                            wrap.classList.remove(outClass);
+                            this.switchMode('quiz'); 
+                            return;
+                        }
+                    }
+                    
+                    // 퇴장 클래스 제거 후 새 데이터로 슬라이드 인
+                    wrap.classList.remove(outClass);
+                    void wrap.offsetWidth; // 브라우저 리플로우 강제 발생 (애니메이션 재시작)
+                    wrap.classList.add('slide-in');
+                    
+                }, 300);
             },
+            
             switchMode(m) {
                 this.mode = m;
                 document.getElementById('studyUI').classList.add('hidden');
@@ -230,6 +310,7 @@
                 document.getElementById(`${m}UI`).classList.remove('hidden');
                 if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.loadQuiz(); }
             },
+            
             loadQuiz() {
                 if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
                 this.isAns = false; const w = this.sessionWords[this.sessionIdx];
@@ -240,27 +321,45 @@
                 document.getElementById('qHintContent').previousElementSibling.classList.remove('hidden');
                 document.getElementById('qHintRadical').textContent = `부수: ${w.radical} (${w.strokes})`;
                 document.getElementById('qHintEtym').textContent = w.etymology;
+                
+                // 오답 보기 3개 랜덤 추출 및 섞기
                 const opts = [{t:w.meaning, c:true}, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.meaning, c:false}))].sort(()=>Math.random()-0.5);
                 const cont = document.getElementById('qOptions'); cont.innerHTML = '';
+                
                 opts.forEach((o, i) => {
                     const b = document.createElement('button');
                     b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center";
                     b.innerHTML = `<span class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center mr-4 text-xs font-black text-slate-400">${i+1}</span> <span class="text-xl">${o.t}</span>`;
-                    b.onclick = () => { if(this.isAns) return; this.isAns = true; if(o.c) { b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-[#27ae60] bg-emerald-50 font-black text-[#27ae60] flex items-center"; this.score++; } else { b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center"; } setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); };
+                    b.onclick = () => { 
+                        if(this.isAns) return; 
+                        this.isAns = true; 
+                        if(o.c) { 
+                            b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-[#27ae60] bg-emerald-50 font-black text-[#27ae60] flex items-center"; 
+                            this.score++; 
+                        } else { 
+                            b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center"; 
+                        } 
+                        setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); 
+                    };
                     cont.appendChild(b);
                 });
             },
+            
             showResult() {
                 this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
                 localStorage.setItem('hanja_roots_history', JSON.stringify(this.history));
-                this.exitNow();
+                
+                document.getElementById('exitModal').classList.add('hidden'); 
+                document.getElementById('sessionLayer').classList.add('hidden'); 
+                this.renderGrid();
             },
-            exitNow() { document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            
+            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
+            exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            
             ri() { if(window.lucide) window.lucide.createIcons(); }
         };
         window.onload = () => app.init();
     </script>
 </body>
 </html>
-
-```
