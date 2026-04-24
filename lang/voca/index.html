@@ -29,10 +29,19 @@
         .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
         .flip-card-back { transform: rotateY(180deg); align-items: stretch; justify-content: flex-start; padding: 1.5rem; overflow-y: auto; }
 
+        /* 애니메이션 업그레이드: 스와이프 효과 추가 */
         .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
         .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
         @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        /* 애니메이션 업그레이드: 오답 시 흔들림(Shake) 효과 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
 
         .btn-active:active { transform: scale(0.92); opacity: 0.8; }
         .option-btn:active { transform: scale(0.96); background: #f8fafc; }
@@ -40,7 +49,6 @@
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none" onclick="app.unlockAudio()">
 
-    <!-- Header -->
     <header class="bg-white border-b border-slate-200 z-40 shrink-0 px-4 py-3 shadow-sm">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
@@ -52,7 +60,6 @@
                     <div class="w-2 h-2 bg-slate-300 rounded-full" id="statusDot"></div>
                     <span id="statusText" class="text-[9px] font-black text-slate-400 uppercase">Search</span>
                 </div>
-                <!-- 홈버튼: 지식뿌리 메인 포털로 이동 -->
                 <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 active:text-indigo-600 btn-active"><i data-lucide="home" class="w-5 h-5"></i></button>
             </div>
         </div>
@@ -105,7 +112,6 @@
         </div>
     </main>
 
-    <!-- 세션 화면 (학습 & 퀴즈) -->
     <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden">
         <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
             <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="x" class="w-7 h-7 text-slate-300"></i></button>
@@ -123,7 +129,7 @@
             
             <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div id="cardWrapper" class="w-full slide-in">
-                    <div class="flip-card cursor-pointer" id="flashcard" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card cursor-pointer" id="flashcard" role="button" tabindex="0" onclick="if(!app.isSwiping) this.classList.toggle('flipped')">
                         <div class="flip-card-inner">
                             <div class="flip-card-front">
                                 <span class="text-indigo-300 text-[11px] font-black uppercase tracking-[0.4em] mb-4">Tap to Flip</span>
@@ -171,7 +177,6 @@
         </div>
     </div>
 
-    <!-- Exit Modal -->
     <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
             <h4 class="text-xl font-black text-slate-900 mb-2">Stop Session?</h4>
@@ -183,7 +188,7 @@
         const app = {
             db: [], history: {}, sessionWords: [], sessionIdx: 0,
             score: 0, wrongs: [], isAns: false, mode: 'study', currentKey: '',
-            audioUnlocked: false, ttsVoice: null, tx: 0, ty: 0,
+            audioUnlocked: false, ttsVoice: null, tx: 0, ty: 0, isSwiping: false, // isSwiping 상태 추가
 
             async init() {
                 this.loadHistory();
@@ -195,16 +200,25 @@
                     window.speechSynthesis.onvoiceschanged = setup; setup();
                 }
             },
+            
             async autoFetchData() {
                 const dot = document.getElementById('statusDot');
                 const text = document.getElementById('statusText');
                 this.db = []; let success = false;
+                
+                // Fetch 최적화: 에러 발생 시(파일이 끝났을 때) 즉시 루프 중단
                 for(let i=1; i<=20; i++) {
                     try {
                         const res = await fetch(`./data_part${i}.json`);
-                        if(res.ok) { const json = await res.json(); this.db.push(...(Array.isArray(json) ? json : (json.words || []))); success = true; }
-                    } catch(e) {}
+                        if(!res.ok) break; // 파일이 없으면 불필요한 네트워크 요청 중단
+                        const json = await res.json(); 
+                        this.db.push(...(Array.isArray(json) ? json : (json.words || []))); 
+                        success = true;
+                    } catch(e) { 
+                        break; 
+                    }
                 }
+                
                 if(success) {
                     this.db = this.db.filter((v,i,a)=>a.findIndex(t=>t.word===v.word)===i);
                     dot.className = "w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse";
@@ -216,11 +230,13 @@
                     document.getElementById('manualLoadBtn').classList.remove('hidden');
                 }
             },
+            
             loadHistory() {
                 const h = localStorage.getItem('v_h_vScoreHint'); if(h) this.history = JSON.parse(h);
                 const m = localStorage.getItem('v_manual_db'); if(m) this.db = JSON.parse(m);
             },
             resetHistory() { if(confirm("학습 이력을 초기화할까요?")) { localStorage.removeItem('v_h_vScoreHint'); location.reload(); } },
+            
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
                 const lvl = document.getElementById('courseLevel').value;
@@ -231,20 +247,26 @@
                 if(!list.length) return;
                 const days = Math.ceil(list.length/size);
                 let completed = 0;
+                
+                // DocumentFragment를 활용한 렌더링 최적화
+                const frag = document.createDocumentFragment();
                 for(let i=0; i<days; i++){
                     const key = `${lvl}_${size}_${sort}_${i+1}`;
                     const scoreStr = this.history[key];
                     if(scoreStr) completed++;
                     const card = document.createElement('div');
-                    card.className = "bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm active:scale-95 transition-all relative overflow-hidden";
+                    card.className = "bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm active:scale-95 transition-all relative overflow-hidden cursor-pointer";
                     card.onclick = () => this.startSession(list.slice(i*size, (i+1)*size), i+1, key);
                     card.innerHTML = `${scoreStr ? '<div class="absolute top-4 right-4 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3.5 h-3.5"></i></div>' : ''}<div class="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 font-black text-xs mb-4">${i+1}</div><h3 class="font-black text-slate-800 text-lg">Day ${i+1}</h3><p class="text-[12px] font-black text-indigo-600 mt-1 uppercase">${scoreStr || 'Start'}</p>`;
-                    grid.appendChild(card);
+                    frag.appendChild(card);
                 }
+                grid.appendChild(frag);
+                
                 const pct = days > 0 ? Math.round((completed/days)*100) : 0;
                 document.getElementById('totalProgressText').textContent = `${pct}% Done`;
                 this.ri();
             },
+            
             unlockAudio() { if(!this.audioUnlocked) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); this.audioUnlocked = true; } },
             speak(txt) {
                 if(!txt || !('speechSynthesis' in window)) return;
@@ -253,20 +275,38 @@
                 if(this.ttsVoice) ut.voice = this.ttsVoice;
                 ut.lang = 'en-US'; ut.rate = 0.85; window.speechSynthesis.speak(ut);
             },
-            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; },
+            
+            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
             te(e) {
                 const dx = e.changedTouches[0].screenX - this.tx;
                 const dy = e.changedTouches[0].screenY - this.ty;
-                if(Math.abs(dx) < 55 || Math.abs(dy) > 100 || this.mode !== 'study') return;
-                if(dx > 0) this.navCard(-1); else this.navCard(1);
-            },
-            navCard(dir) {
-                if(dir === -1 && this.sessionIdx > 0) { this.sessionIdx--; this.renderStudy(); }
-                else if(dir === 1) {
-                    if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
-                    else { this.switchMode('quiz'); }
+                if(Math.abs(dx) > 55 && Math.abs(dy) < 100 && this.mode === 'study') { 
+                    this.isSwiping = true; 
+                    if(dx > 0) this.navCard(-1); else this.navCard(1); 
                 }
             },
+            
+            // 애니메이션 업그레이드: 슬라이드 스와이프 효과 적용
+            navCard(dir) {
+                const wrap = document.getElementById('cardWrapper');
+                if(dir === -1 && this.sessionIdx === 0) return;
+                
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                wrap.classList.remove('slide-in');
+                wrap.classList.add(outClass);
+                
+                setTimeout(() => {
+                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
+                    else if(dir === 1) {
+                        if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
+                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
+                    }
+                    wrap.classList.remove(outClass);
+                    void wrap.offsetWidth; // 브라우저 리플로우 강제 유발 (애니메이션 재시작)
+                    wrap.classList.add('slide-in');
+                }, 300);
+            },
+            
             startSession(words, dayNum, key) {
                 this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
                 document.getElementById('sessionLayer').classList.remove('hidden');
@@ -274,6 +314,7 @@
                 document.getElementById('sessionTotal').textContent = words.length;
                 this.renderStudy();
             },
+            
             renderStudy() {
                 const w = this.sessionWords[this.sessionIdx];
                 const card = document.getElementById('flashcard');
@@ -289,6 +330,7 @@
                 document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "Start Quiz" : "Next Word";
                 this.ri();
             },
+            
             switchMode(m) {
                 this.mode = m;
                 ['studyUI','quizUI','resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
@@ -297,6 +339,7 @@
                 else if(m==='study') { this.sessionIdx = 0; this.renderStudy(); }
                 this.ri();
             },
+            
             loadQuizQ() {
                 if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
                 this.isAns = false; const w = this.sessionWords[this.sessionIdx];
@@ -307,17 +350,37 @@
                 document.getElementById('qHintContent').classList.add('hidden');
                 document.getElementById('qEtym').innerHTML = w.parts.map(p=>`<div class="p-2 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col"><span class="text-[14px] font-black text-indigo-700">${p.text}</span><p class="text-[11px] font-bold text-slate-700">${p.meaning}</p></div>`).join('');
                 let opts = [{t:w.meaning, c:true}].concat(this.db.filter(i=>i.word!==w.word).sort(()=>Math.random()-0.5).slice(0,3).map(i=>({t:i.meaning,c:false}))).sort(()=>Math.random()-0.5);
-                const container = document.getElementById('qOptions'); container.innerHTML = '';
+                
+                const container = document.getElementById('qOptions'); 
+                container.innerHTML = '';
+                
+                // 퀴즈 렌더링 최적화
+                const frag = document.createDocumentFragment();
                 opts.forEach((o, i) => {
                     const btn = document.createElement('button');
-                    btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center";
+                    btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center transition-all";
                     btn.innerHTML = `<span class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center mr-3 text-xs text-slate-400 font-black">${i+1}</span> <span>${o.t}</span>`;
-                    btn.onclick = () => { if(this.isAns) return; this.isAns = true; if(o.c) { btn.className = "w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-black text-emerald-700 flex items-center"; this.score++; } else { btn.className = "w-full text-left p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center"; this.wrongs.push(w); } setTimeout(()=>{ this.sessionIdx++; this.loadQuizQ(); }, 1000); };
-                    container.appendChild(btn);
+                    btn.onclick = () => { 
+                        if(this.isAns) return; 
+                        this.isAns = true; 
+                        if(o.c) { 
+                            btn.className = "w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-black text-emerald-700 flex items-center"; 
+                            this.score++; 
+                        } else { 
+                            // UI 업그레이드: 오답 시 흔들림(Shake) 효과 클래스 추가
+                            btn.className = "w-full text-left p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center animate-shake"; 
+                            this.wrongs.push(w); 
+                        } 
+                        setTimeout(()=>{ this.sessionIdx++; this.loadQuizQ(); }, 1000); 
+                    };
+                    frag.appendChild(btn);
                 });
+                container.appendChild(frag);
                 this.ri();
             },
+            
             showHint() { document.getElementById('hintBtn').classList.add('hidden'); document.getElementById('qHintContent').classList.remove('hidden'); },
+            
             showResult() {
                 this.mode = 'result'; ['studyUI','quizUI','resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById('resultUI').classList.remove('hidden');
@@ -325,13 +388,17 @@
                 document.getElementById('fTotal').textContent = this.sessionWords.length;
                 this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
                 localStorage.setItem('v_h_vScoreHint', JSON.stringify(this.history));
+                
                 const list = document.getElementById('wrongList'); list.innerHTML = '';
                 if(this.wrongs.length > 0) {
                     document.getElementById('wrongReview').classList.remove('hidden');
-                    this.wrongs.forEach(w => { list.innerHTML += `<li class="bg-white p-3 rounded-xl border border-rose-100"><span class="font-black text-slate-800 text-sm">${w.word}</span><p class="text-rose-500 text-[10px] font-bold">${w.meaning}</p></li>`; });
+                    // 오답노트 렌더링 최적화
+                    const wrongHTML = this.wrongs.map(w => `<li class="bg-white p-3 rounded-xl border border-rose-100"><span class="font-black text-slate-800 text-sm">${w.word}</span><p class="text-rose-500 text-[10px] font-bold">${w.meaning}</p></li>`).join('');
+                    list.innerHTML = wrongHTML;
                 }
                 this.ri();
             },
+            
             confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
             exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
             importData(e) { /* 구현 생략 - 필요시 추가 가능 */ },
@@ -341,5 +408,3 @@
     </script>
 </body>
 </html>
-
-```
