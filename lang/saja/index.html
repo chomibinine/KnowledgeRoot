@@ -29,8 +29,6 @@
         .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
         .flip-card-back { transform: rotateY(180deg); padding: 1.5rem; overflow-y: auto; }
 
-        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
-        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
         @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
 
@@ -144,15 +142,28 @@
             },
             async loadData() {
                 try {
-                    // saja.json 파일을 서버에서 읽어옵니다.
-                    const res = await fetch('./saja.json');
-                    if(res.ok) {
-                        this.db = await res.json();
-                        document.getElementById('wordCountLabel').textContent = `${this.db.length}개의 성어`;
-                        this.renderGrid();
-                    } else { throw new Error(); }
+                    let allData = [];
+                    // saja_01.json 부터 차례대로 불러와서 합침 (최대 10개 파일)
+                    for(let i=1; i<=10; i++) {
+                        const fileName = `./saja_${String(i).padStart(2, '0')}.json`;
+                        const res = await fetch(fileName);
+                        if(res.ok) {
+                            const data = await res.json();
+                            allData = allData.concat(data);
+                        } else {
+                            // 404 등 에러 발생 시 파일이 끝났다고 판단하고 중단
+                            break;
+                        }
+                    }
+                    
+                    if(allData.length === 0) throw new Error("데이터 없음");
+                    
+                    this.db = allData;
+                    document.getElementById('wordCountLabel').textContent = `총 ${this.db.length}개의 성어 활성화됨`;
+                    this.renderGrid();
                 } catch(e) { 
-                    document.getElementById('wordCountLabel').textContent = "데이터 파일(saja.json) 없음"; 
+                    console.error(e);
+                    document.getElementById('wordCountLabel').textContent = "데이터 파일 로드 실패"; 
                 }
             },
             loadHistory() { 
@@ -245,5 +256,6 @@
     </script>
 </body>
 </html>
+
 
 ```
