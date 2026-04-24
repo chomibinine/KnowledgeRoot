@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>지식뿌리 | Knowledge Root - 통합 지식 포털</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-0000000000000000" crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        :root {
+            --bg-base: #0a0b10;
+            --text-main: #ffffff;
+            --text-muted: #9aa4b2;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            
+            /* Section Accents */
+            --lang-color: #00d2d3;
+            --society-color: #ff9f43;
+            --math-color: #f1c40f;
+            --special-color: #f368e0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Pretendard, sans-serif;
+            background: var(--bg-base);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 배경 블러 효과 */
+        body::before {
+            content: ''; position: fixed; width: 400px; height: 400px;
+            background: rgba(0, 210, 211, 0.08); filter: blur(150px);
+            top: -10%; left: -10%; z-index: -1;
+        }
+        body::after {
+            content: ''; position: fixed; width: 400px; height: 400px;
+            background: rgba(243, 104, 224, 0.08); filter: blur(150px);
+            bottom: -10%; right: -10%; z-index: -1;
+        }
+
+        .header { text-align: center; padding: 60px 20px 30px; }
+        .header h1 { font-size: 3rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; background: linear-gradient(180deg, #fff 0%, #b2bec3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header p { color: var(--text-muted); margin-top: 10px; font-size: 1rem; font-weight: 400; }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 0 20px 40px; }
+
+        /* 섹션 타이틀 */
+        .section-title {
+            font-size: 1.2rem; font-weight: 800; color: #fff;
+            margin: 40px 0 15px 0; padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        /* 카드 UI */
+        .card {
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 24px; cursor: pointer; transition: all 0.3s ease;
+            display: flex; flex-direction: column; align-items: flex-start;
+        }
+        .card:hover { transform: translateY(-4px); background: rgba(255, 255, 255, 0.06); }
+        .card h2 { font-size: 1.3rem; margin: 0 0 8px 0; font-weight: 800; letter-spacing: -0.5px; }
+        .card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px 0; flex-grow: 1; word-break: keep-all; }
+        .full { grid-column: span 2; }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; margin-bottom: 14px; }
+        .tag { font-size: 0.7rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); text-transform: uppercase; }
+
+        .footer { text-align: center; padding: 40px 20px; color: #6c757d; font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); }
+
+        @media(max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .grid { grid-template-columns: 1fr; gap: 12px; }
+            .full { grid-column: auto; }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>지식뿌리</h1>
+    <p>암기하지 마세요, 뿌리부터 이해하세요.</p>
+</div>
+
+<div class="container">
+
+    <div class="section-title" style="border-bottom-color: rgba(0, 210, 211, 0.2);">
+        <span style="color: var(--lang-color);">📖 언어의 뿌리</span> (국어/영어)
+    </div>
+    <div class="grid">
+        <div class="card" onclick="go('/lang/voca')">
+            <span class="dot" style="background: var(--lang-color); box-shadow: 0 0 10px var(--lang-color);"></span>
+            <h2>Voca Root</h2>
+            <p>접두사·어근·접미사 분해로 저절로 확장되는 마법의 영단어장</p>
+            <div class="tag" style="color: var(--lang-color);">English</div>
+        </div>
+        <div class="card" onclick="go('/lang/hanja')">
+            <span class="dot" style="background: var(--lang-color); box-shadow: 0 0 10px var(--lang-color);"></span>
+            <h2>Hanja Root</h2>
+            <p>한국어문회 8급~1급. 부수와 결합 원리로 파헤치는 한자의 뼈대</p>
+            <div class="tag" style="color: var(--lang-color);">Hanja</div>
+        </div>
+        <div class="card" onclick="go('/lang/idiom')">
+            <span class="dot" style="background: var(--lang-color); box-shadow: 0 0 10px var(--lang-color);"></span>
+            <h2>사자성어 & 고사성어</h2>
+            <p>수능 국어 단골 1순위. 역사적 스토리로 각인되는 성어 사전</p>
+            <div class="tag" style="color: var(--lang-color);">Korean</div>
+        </div>
+        <div class="card" onclick="go('/lang/grammar')">
+            <span class="dot" style="background: var(--lang-color); box-shadow: 0 0 10px var(--lang-color);"></span>
+            <h2>맞춤법 & 문법의 뿌리</h2>
+            <p>내신 서술형 감점 방어! 헷갈리는 띄어쓰기와 표준어 규정 타파</p>
+            <div class="tag" style="color: var(--lang-color);">Grammar</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="border-bottom-color: rgba(255, 159, 67, 0.2);">
+        <span style="color: var(--society-color);">🔬 탐구의 뿌리</span> (사회/과학)
+    </div>
+    <div class="grid">
+        <div class="card" onclick="go('/explore/society')">
+            <span class="dot" style="background: var(--society-color); box-shadow: 0 0 10px var(--society-color);"></span>
+            <h2>비문학 스캐너 (경제/법)</h2>
+            <p>수능 독해력 수직 상승. 금리, 환율, 기회비용 등 필수 개념어 분석</p>
+            <div class="tag" style="color: var(--society-color);">Society</div>
+        </div>
+        <div class="card" onclick="go('/explore/science')">
+            <span class="dot" style="background: var(--society-color); box-shadow: 0 0 10px var(--society-color);"></span>
+            <h2>과학 용어의 뿌리</h2>
+            <p>엔트로피, 미토콘드리아? 어원으로 쉽게 풀어보는 물리/화학/생명</p>
+            <div class="tag" style="color: var(--society-color);">Science</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="border-bottom-color: rgba(241, 196, 15, 0.2);">
+        <span style="color: var(--math-color);">📐 논리의 뿌리</span> (수학)
+    </div>
+    <div class="grid">
+        <div class="card full" onclick="go('/math/concept')">
+            <span class="dot" style="background: var(--math-color); box-shadow: 0 0 10px var(--math-color);"></span>
+            <h2>공식의 뿌리 (미적분/함수)</h2>
+            <p>문제 풀이는 그만! 미분은 도대체 왜 만들었을까? 상위권 도약을 위한 수학 개념 탄생 스토리</p>
+            <div class="tag" style="color: var(--math-color);">Math Concept</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="border-bottom-color: rgba(243, 104, 224, 0.2);">
+        <span style="color: var(--special-color);">⚡ 특화 학습 모듈</span>
+    </div>
+    <div class="grid">
+        <div class="card" onclick="go('/special/180s-literacy')" style="border-color: rgba(243, 104, 224, 0.3);">
+            <span class="dot" style="background: var(--special-color); box-shadow: 0 0 10px var(--special-color);"></span>
+            <h2>🔥 180초 숏폼 문해력</h2>
+            <p>전 과목 비문학 지문을 3분 컷으로! 스와이프하며 돌파하는 타임어택</p>
+            <div class="tag" style="color: var(--special-color);">Time Attack</div>
+        </div>
+        <div class="card" onclick="go('/special/mbti')" style="border-color: rgba(243, 104, 224, 0.3);">
+            <span class="dot" style="background: var(--special-color); box-shadow: 0 0 10px var(--special-color);"></span>
+            <h2>MBTI 학습 큐레이션</h2>
+            <p>내 성향에 맞는 학습법은? 12문항 테스트로 오늘의 맞춤 코스 진단</p>
+            <div class="tag" style="color: var(--special-color);">Personalized</div>
+        </div>
+        <div class="card full" onclick="go('/special/audio')" style="border-color: rgba(243, 104, 224, 0.3);">
+            <span class="dot" style="background: var(--special-color); box-shadow: 0 0 10px var(--special-color);"></span>
+            <h2>🎧 ASMR 오디오 단어장</h2>
+            <p>화면을 끄고 편안하게. 수면 전이나 등교길에 백색소음과 함께 듣는 앰비언트 스크립트</p>
+            <div class="tag" style="color: var(--special-color);">Audio Learn</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">
+    <div style="margin-bottom: 20px;">
+        <a href="https://hits.sh/chomibinine.github.io/knowledgeroot/" target="_blank">
+            <img alt="카운터" src="https://hits.sh/chomibinine.github.io/knowledgeroot.svg?view=today-total&label=VISITORS&color=00d2d3&labelColor=0a0b10" />
+        </a>
+    </div>
+    <div style="margin-bottom: 15px;">
+        <a href="#" style="color: #888; text-decoration: none; margin: 0 10px;">개인정보처리방침</a> | 
+        <a href="mailto:chomibinine@gmail.com" style="color: #888; text-decoration: none; margin: 0 10px;">문의: chomibinine@gmail.com</a>
+    </div>
+    © <span id="footer-year"></span> 지식뿌리 (Knowledge Root)
+</div>
+
+<script>
+// 세부 페이지 라우팅 함수
+function go(path) {
+    // 실제 서비스에서는 React Router(useNavigate) 또는 window.location.href 사용
+    console.log("Navigating to:", path);
+    // window.location.href = path; 
+    alert(path + " 페이지로 이동합니다. (현재는 데모용 알림입니다.)");
+}
+
+document.getElementById('footer-year').innerText = new Date().getFullYear();
+</script>
+
+</body>
+</html>
