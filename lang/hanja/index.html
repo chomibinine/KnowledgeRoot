@@ -160,40 +160,61 @@
                 this.ri();
             },
             
-            // 데이터 자동 무한 로드 함수
+            // 데이터 방어 로직 강화 (오류 탐지기 기능 추가)
             async loadLevelData() {
                 const lvl = document.getElementById('courseLevel').value;
                 const status = document.getElementById('statusMsg');
                 const label = document.getElementById('wordCountLabel');
                 
                 status.classList.remove('hidden'); 
-                label.textContent = "Loading..."; 
+                label.textContent = "데이터 찾는 중..."; 
                 this.db = [];
                 
                 try {
-                    let partIndex = 1;
-                    
-                    while (true) {
-                        const fileName = `./level${lvl}_part${partIndex}.json`;
-                        const res = await fetch(fileName);
-                        
-                        if (res.ok) {
-                            const json = await res.json();
-                            this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
-                            partIndex++;
-                        } else {
-                            // part1 파일이 없으면 혹시 'level8.json' 형태의 단일 파일인지 한 번 더 확인
-                            if (partIndex === 1) {
-                                const fallbackRes = await fetch(`./level${lvl}.json`);
-                                if (fallbackRes.ok) {
-                                    const json = await fallbackRes.json();
-                                    this.db = this.db.concat(Array.isArray(json) ? json : (json.hanja || []));
-                                }
+                    // 1. 단일 파일 우선 시도 (예: level8.json)
+                    try {
+                        const res1 = await fetch(`./level${lvl}.json`);
+                        if (res1.ok) {
+                            try {
+                                const json1 = await res1.json();
+                                this.db = this.db.concat(Array.isArray(json1) ? json1 : (json1.hanja || json1.data || []));
+                            } catch (e) {
+                                alert(`🚨 [오류 발견!]\n'level${lvl}.json' 파일 내용에 쉼표(,)나 괄호가 잘못된 부분이 있습니다.\n파일을 열어 문법을 확인해주세요.`);
                             }
-                            break; // 404 등 파일이 없으면 반복문 탈출
+                        }
+                    } catch (err) {
+                        console.warn("단일 파일 시도 스킵");
+                    }
+
+                    // 2. 파트별 분할 파일 시도 (예: level3_part1.json)
+                    if (this.db.length === 0) {
+                        let partIndex = 1;
+                        while (true) {
+                            try {
+                                const fileName = `./level${lvl}_part${partIndex}.json`;
+                                const res2 = await fetch(fileName);
+                                
+                                if (res2.ok) {
+                                    try {
+                                        // 여기서 파일은 찾았는데 JSON 형식이 망가졌다면 에러가 발생함!
+                                        const json2 = await res2.json();
+                                        this.db = this.db.concat(Array.isArray(json2) ? json2 : (json2.hanja || json2.data || []));
+                                        partIndex++;
+                                    } catch (parseError) {
+                                        // 범인 색출 성공! 사용자에게 정확한 파일명 알려주기
+                                        alert(`🚨 [데이터 문법 오류 발견!]\n\n'${fileName}' 파일 내부에 문제가 있습니다.\n항목 사이에 쉼표(,)가 빠졌거나 괄호가 잘못 열고 닫혔을 확률이 높습니다.\n\n해당 파일을 열어서 확인해주세요!`);
+                                        break; // 에러 난 파일 이후로는 로드 중단
+                                    }
+                                } else {
+                                    break; // 404 등 파일이 더 없으면 정상적으로 반복 종료
+                                }
+                            } catch (networkErr) {
+                                break;
+                            }
                         }
                     }
-                    
+
+                    // 3. 결과 판별
                     if (this.db.length > 0) { 
                         label.textContent = `총 ${this.db.length.toLocaleString()}자 활성화됨`; 
                         this.renderGrid(); 
@@ -264,21 +285,16 @@
                 this.ri();
             },
             
-            // 완벽하게 수정된 애니메이션 넘기기 함수
             navCard(dir) {
                 const wrap = document.getElementById('cardWrapper');
                 
-                // 더 이상 뒤로 갈 카드가 없는 경우 무시
                 if(dir === -1 && this.sessionIdx === 0) return;
 
-                // 애니메이션 방향 설정 (다음: 왼쪽으로 빠짐, 이전: 오른쪽으로 빠짐)
                 const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
                 
-                // 기존 진입 애니메이션 제거 후 퇴장 애니메이션 추가
                 wrap.classList.remove('slide-in');
                 wrap.classList.add(outClass);
 
-                // CSS transition 시간(0.3s) 대기 후 데이터 변경 및 재등장
                 setTimeout(() => {
                     if(dir === -1) { 
                         this.sessionIdx--; 
@@ -288,16 +304,14 @@
                             this.sessionIdx++; 
                             this.renderStudy(); 
                         } else { 
-                            // 마지막 카드에서 넘기면 퀴즈로 이동
                             wrap.classList.remove(outClass);
                             this.switchMode('quiz'); 
                             return;
                         }
                     }
                     
-                    // 퇴장 클래스 제거 후 새 데이터로 슬라이드 인
                     wrap.classList.remove(outClass);
-                    void wrap.offsetWidth; // 브라우저 리플로우 강제 발생 (애니메이션 재시작)
+                    void wrap.offsetWidth; 
                     wrap.classList.add('slide-in');
                     
                 }, 300);
@@ -322,7 +336,6 @@
                 document.getElementById('qHintRadical').textContent = `부수: ${w.radical} (${w.strokes})`;
                 document.getElementById('qHintEtym').textContent = w.etymology;
                 
-                // 오답 보기 3개 랜덤 추출 및 섞기
                 const opts = [{t:w.meaning, c:true}, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.meaning, c:false}))].sort(()=>Math.random()-0.5);
                 const cont = document.getElementById('qOptions'); cont.innerHTML = '';
                 
