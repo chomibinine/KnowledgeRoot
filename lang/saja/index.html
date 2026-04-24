@@ -28,8 +28,19 @@
         .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
         .flip-card-back { transform: rotateY(180deg); padding: 1.5rem; overflow-y: auto; }
 
+        /* 스와이프 애니메이션 추가 */
+        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
+        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
         @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        /* 오답 Shake 애니메이션 추가 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
 
         .btn-active:active { transform: scale(0.92); }
         .hanja-box { font-size: 1.5rem; font-weight: 900; color: #581c87; background: #f3e8ff; padding: 0.5rem; border-radius: 0.75rem; width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; }
@@ -37,7 +48,7 @@
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
-    <header class="bg-white border-b border-purple-100 shrink-0 px-4 py-4 shadow-sm">
+    <header class="bg-white border-b border-purple-100 shrink-0 px-4 py-4 shadow-sm relative z-40">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="bg-purple-700 p-2 rounded-xl shadow-lg"><i data-lucide="scroll" class="text-white w-5 h-5"></i></div>
@@ -68,17 +79,18 @@
             <div class="text-center">
                 <span id="sessionDayLabel" class="text-[10px] font-black text-purple-600 uppercase tracking-widest">DAY 01</span>
                 <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
-                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-purple-700">학습</button>
-                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400">테스트</button>
+                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-purple-700 transition-all">학습</button>
+                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400 transition-all">테스트</button>
                 </div>
             </div>
             <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-purple-700 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">20</span></div>
         </div>
 
-        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+            
             <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div id="cardWrapper" class="w-full slide-in">
-                    <div class="flip-card cursor-pointer" id="flashcard" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card cursor-pointer" id="flashcard" role="button" tabindex="0" onclick="if(!app.isSwiping) this.classList.toggle('flipped')">
                         <div class="flip-card-inner">
                             <div class="flip-card-front">
                                 <h3 id="lReading" class="text-3xl font-black text-purple-600 mb-6 tracking-widest"></h3>
@@ -107,18 +119,25 @@
             </div>
 
             <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
-                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-6 mt-4 border border-purple-100 text-center relative overflow-hidden">
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-6 mt-4 border border-purple-100 text-center relative overflow-hidden shrink-0">
                     <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-purple-600 transition-all duration-300"></div></div>
-                    <h3 id="qIdiom" class="text-7xl font-black text-slate-900 leading-none mb-8"></h3>
+                    <h3 id="qIdiom" class="text-7xl font-black text-slate-900 leading-none mb-8 mt-4"></h3>
                     <button onclick="document.getElementById('qHint').classList.remove('hidden'); this.classList.add('hidden');" class="mx-auto flex items-center gap-1.5 text-[12px] font-black text-purple-600 bg-purple-50 px-6 py-3 rounded-full"><i data-lucide="lightbulb" class="w-4 h-4"></i> 유래 힌트 보기</button>
                     <div id="qHint" class="hidden mt-6 text-left border-t border-slate-100 pt-6"><p id="qHintStory" class="text-lg font-bold text-amber-900 bg-amber-50 p-4 rounded-2xl leading-relaxed"></p></div>
                 </div>
                 <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
             </div>
+
+            <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
+                <div class="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="award" class="text-purple-600 w-12 h-12"></i></div>
+                <h2 class="text-4xl font-black text-slate-900 mb-1">학습 완료!</h2>
+                <div class="flex items-baseline justify-center mb-8 gap-1"><span id="fCorrect" class="text-purple-600 text-6xl font-black leading-none">0</span><span class="text-slate-300 text-3xl font-black">/</span><span id="fTotal" class="text-slate-300 text-3xl font-black">20</span></div>
+                <div id="wrongReview" class="w-full max-w-xs bg-rose-50 rounded-2xl p-6 border border-rose-100 mb-8 hidden overflow-y-auto max-h-48 text-left"><ul id="wrongList" class="space-y-2"></ul></div>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">목록으로 돌아가기</button>
+            </div>
         </div>
     </div>
 
-    <!-- 종료 모달 -->
     <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
             <h4 class="text-xl font-black text-slate-900 mb-2">학습을 종료할까요?</h4>
@@ -133,16 +152,18 @@
     <script>
         const app = {
             db: [], history: {}, sessionWords: [], sessionIdx: 0,
-            score: 0, isAns: false, mode: 'study', tx: 0, currentKey: '',
+            score: 0, wrongs: [], isAns: false, mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            
             async init() {
                 this.loadHistory();
                 await this.loadData();
                 this.ri();
             },
+            
             async loadData() {
                 try {
                     let allData = [];
-                    // saja_01.json 부터 차례대로 불러와서 합침 (최대 10개 파일)
+                    // Fetch 최적화
                     for(let i=1; i<=10; i++) {
                         const fileName = `./saja_${String(i).padStart(2, '0')}.json`;
                         const res = await fetch(fileName);
@@ -150,8 +171,7 @@
                             const data = await res.json();
                             allData = allData.concat(data);
                         } else {
-                            // 404 등 에러 발생 시 파일이 끝났다고 판단하고 중단
-                            break;
+                            break; // 파일 없으면 즉시 종료
                         }
                     }
                     
@@ -162,17 +182,19 @@
                     this.renderGrid();
                 } catch(e) { 
                     console.error(e);
-                    document.getElementById('wordCountLabel').textContent = "데이터 파일 로드 실패"; 
+                    document.getElementById('wordCountLabel').textContent = "데이터 로드 실패"; 
                 }
             },
-            loadHistory() { 
-                const h = localStorage.getItem('saja_history'); 
-                if(h) this.history = JSON.parse(h); 
-            },
+            
+            loadHistory() { const h = localStorage.getItem('saja_history'); if(h) this.history = JSON.parse(h); },
+            
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
                 const size = 20; const days = Math.ceil(this.db.length / size);
                 let completed = 0;
+                
+                // DOM 렌더링 최적화
+                const frag = document.createDocumentFragment();
                 for(let i=0; i<days; i++){
                     const key = `day${i+1}`;
                     const score = this.history[key];
@@ -181,11 +203,45 @@
                     card.className = "bg-white p-6 rounded-[2.2rem] border border-purple-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden";
                     card.onclick = () => this.startSession(this.db.slice(i*size, (i+1)*size), i+1, key);
                     card.innerHTML = `${score ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}<div class="w-10 h-10 mx-auto bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-xs mb-3">${i+1}</div><h3 class="font-black text-slate-800 text-lg">Day ${i+1}</h3><p class="text-[10px] font-black text-purple-600 mt-1 uppercase">${score || '시작'}</p>`;
-                    grid.appendChild(card);
+                    frag.appendChild(card);
                 }
-                document.getElementById('totalProgressText').textContent = `${Math.round((completed/days)*100)}% 완료`;
+                grid.appendChild(frag);
+                
+                document.getElementById('totalProgressText').textContent = `${Math.round((completed/days)*100 || 0)}% 완료`;
                 this.ri();
             },
+            
+            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
+            te(e) { 
+                const dx = e.changedTouches[0].screenX - this.tx; 
+                const dy = e.changedTouches[0].screenY - this.ty;
+                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { 
+                    this.isSwiping = true;
+                    if(dx > 0) this.navCard(-1); else this.navCard(1); 
+                } 
+            },
+            
+            // 슬라이드 애니메이션 스와이프 기능
+            navCard(dir) {
+                const wrap = document.getElementById('cardWrapper');
+                if(dir === -1 && this.sessionIdx === 0) return;
+                
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                wrap.classList.remove('slide-in');
+                wrap.classList.add(outClass);
+                
+                setTimeout(() => {
+                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
+                    else if(dir === 1) {
+                        if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
+                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
+                    }
+                    wrap.classList.remove(outClass);
+                    void wrap.offsetWidth; 
+                    wrap.classList.add('slide-in');
+                }, 300);
+            },
+            
             startSession(words, dayNum, key) {
                 this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
                 document.getElementById('sessionLayer').classList.remove('hidden');
@@ -193,6 +249,7 @@
                 document.getElementById('sessionTotal').textContent = words.length;
                 this.renderStudy();
             },
+            
             renderStudy() {
                 const w = this.sessionWords[this.sessionIdx];
                 const card = document.getElementById('flashcard');
@@ -207,54 +264,83 @@
                 document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "테스트 시작" : "다음 성어";
                 this.ri();
             },
-            navCard(dir) {
-                if(dir === -1 && this.sessionIdx > 0) { this.sessionIdx--; this.renderStudy(); }
-                else if(dir === 1) {
-                    if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
-                    else { this.switchMode('quiz'); }
-                }
-            },
+            
             switchMode(m) {
                 this.mode = m;
-                document.getElementById('studyUI').classList.add('hidden');
-                document.getElementById('quizUI').classList.add('hidden');
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById(`${m}UI`).classList.remove('hidden');
-                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.loadQuiz(); }
+                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.loadQuiz(); }
+                else if(m === 'study') { this.sessionIdx = 0; this.renderStudy(); }
             },
+            
             loadQuiz() {
                 if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
-                this.isAns = false; const w = this.sessionWords[this.sessionIdx];
+                this.isAns = false; 
+                const w = this.sessionWords[this.sessionIdx];
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
                 document.getElementById('qBar').style.width = `${(this.sessionIdx/this.sessionWords.length)*100}%`;
                 document.getElementById('qIdiom').textContent = w.idiom;
+                
+                // 힌트 초기화
+                const hintBtn = document.getElementById('qHint').previousElementSibling;
+                hintBtn.classList.remove('hidden');
                 document.getElementById('qHint').classList.add('hidden');
-                document.getElementById('qHint').previousElementSibling.classList.remove('hidden');
                 document.getElementById('qHintStory').textContent = w.etymology.story;
+                
                 const opts = [{t:w.meaning, c:true}, ...this.db.filter(x=>x.meaning!==w.meaning).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.meaning, c:false}))].sort(()=>Math.random()-0.5);
-                const cont = document.getElementById('qOptions'); cont.innerHTML = '';
+                const cont = document.getElementById('qOptions'); 
+                cont.innerHTML = '';
+                
+                // 퀴즈 렌더링 최적화
+                const frag = document.createDocumentFragment();
                 opts.forEach(o => {
                     const b = document.createElement('button');
                     b.className = "w-full text-left p-5 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center transition-all";
                     b.innerHTML = `<span class="text-xl">${o.t}</span>`;
-                    b.onclick = () => { if(this.isAns) return; this.isAns = true; b.className = o.c ? "border-purple-600 bg-purple-50 text-purple-700 w-full text-left p-5 rounded-2xl border-2 flex items-center" : "border-rose-500 bg-rose-50 text-rose-700 w-full text-left p-5 rounded-2xl border-2 flex items-center"; if(o.c) this.score++; setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); };
-                    cont.appendChild(b);
+                    b.onclick = () => { 
+                        if(this.isAns) return; 
+                        this.isAns = true; 
+                        if(o.c) {
+                            b.className = "border-purple-600 bg-purple-50 text-purple-700 w-full text-left p-5 rounded-2xl border-2 flex items-center"; 
+                            this.score++; 
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 600); 
+                        } else {
+                            // 오답 시 Shake 효과 적용 및 오답노트 배열에 추가
+                            b.className = "border-rose-500 bg-rose-50 text-rose-700 w-full text-left p-5 rounded-2xl border-2 flex items-center animate-shake"; 
+                            this.wrongs.push(w);
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); 
+                        }
+                    };
+                    frag.appendChild(b);
                 });
+                cont.appendChild(frag);
             },
+            
+            // 결과창 UI 
             showResult() {
+                this.mode = 'result'; 
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('resultUI').classList.remove('hidden');
+                
+                document.getElementById('fCorrect').textContent = this.score;
+                document.getElementById('fTotal').textContent = this.sessionWords.length;
                 this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
                 localStorage.setItem('saja_history', JSON.stringify(this.history));
-                this.exitNow();
+                
+                const list = document.getElementById('wrongList'); list.innerHTML = '';
+                if(this.wrongs.length > 0) {
+                    document.getElementById('wrongReview').classList.remove('hidden');
+                    list.innerHTML = this.wrongs.map(w => `<li class="bg-white p-3 rounded-xl border border-rose-100"><span class="font-black text-slate-800 text-lg mr-2">${w.idiom}</span><span class="text-purple-600 text-[11px] font-black">${w.reading}</span><p class="text-rose-500 text-[12px] font-bold mt-1">${w.meaning}</p></li>`).join('');
+                }
+                this.ri();
             },
+            
             confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
             exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
             resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('saja_history'); location.reload(); } },
-            ts(e) { this.tx = e.changedTouches[0].screenX; },
-            te(e) { const dx = e.changedTouches[0].screenX - this.tx; if(Math.abs(dx) > 60 && this.mode === 'study') { if(dx > 0) this.navCard(-1); else this.navCard(1); } },
             ri() { if(window.lucide) window.lucide.createIcons(); }
         };
         window.onload = () => app.init();
     </script>
 </body>
 </html>
-
-
-```
