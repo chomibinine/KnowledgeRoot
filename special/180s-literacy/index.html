@@ -8,13 +8,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        /* body에 fixed inset-0을 주어 화면 밖으로 절대 밀려나지 않게 강제 고정 */
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; -webkit-tap-highlight-color: transparent; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
         
         #cardWrapper { position: relative; width: 100%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
         
-        /* 🚨 버그 수정: 높이 고정값을 없애고 화면에 맞게 유연하게 줄어들도록 강제 설정 */
         .literacy-card { 
             width: 100%; flex: 1; min-height: 0;
             border-radius: 2rem; display: flex; flex-direction: column; 
@@ -35,7 +35,7 @@
         .content-text { font-size: 1.15rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; }
     </style>
 </head>
-<body class="text-slate-800 h-[100dvh] flex flex-col overflow-hidden select-none">
+<body class="text-slate-800 flex flex-col select-none fixed inset-0 overflow-hidden">
 
     <header class="bg-white border-b border-pink-100 shrink-0 px-4 py-3 shadow-sm relative z-40">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
@@ -52,7 +52,7 @@
         </div>
     </header>
 
-    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-20">
+    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-12 custom-scroll">
         <div class="max-w-4xl mx-auto">
             <div class="mb-4 flex items-center justify-between bg-white p-5 rounded-[2rem] border border-pink-100 shadow-sm">
                 <div>
@@ -79,7 +79,7 @@
                 </div>
             </div>
 
-            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-6"></div>
         </div>
     </main>
 
@@ -95,10 +95,10 @@
             <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-pink-600 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">5</span></div>
         </div>
 
-        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col px-4 pt-4 pb-8 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
             
-            <div id="studyUI" class="flex-1 flex flex-col w-full max-w-md mx-auto min-h-0">
-                <div id="cardWrapper" class="w-full flex-1 flex flex-col slide-in min-h-0 pb-4">
+            <div id="studyUI" class="flex-1 flex flex-col w-full max-w-md mx-auto min-h-0 h-full">
+                <div id="cardWrapper" class="w-full flex-1 flex flex-col slide-in min-h-0 mb-4">
                     <div class="literacy-card relative">
                         <div class="flex items-center gap-2 mb-4 shrink-0">
                             <span id="lLevelTag" class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-md text-[9px] font-black uppercase border border-slate-200">LEVEL</span>
@@ -116,7 +116,7 @@
                 </div>
             </div>
 
-            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-8 custom-scroll">
+            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-12 custom-scroll">
                 <div class="w-full bg-white rounded-[2rem] shadow-lg p-6 mb-5 mt-2 border border-pink-100 text-center relative overflow-hidden shrink-0">
                     <p class="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-3">핵심 내용 확인</p>
                     <h3 id="qQuestion" class="text-lg font-black text-slate-800 leading-snug word-keep-all"></h3>
@@ -160,7 +160,7 @@
                     const cacheBuster = new Date().getTime();
                     const promises = [];
                     
-                    // 🚀 1~50번 병렬 로딩
+                    // 1~50번 병렬 로딩
                     for(let i=1; i<=50; i++) {
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
                         promises.push(
