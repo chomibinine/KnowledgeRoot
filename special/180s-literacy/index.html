@@ -19,12 +19,10 @@
     </script>
 
     <style>
-        /* JS에서 계산한 --vh 값을 사용해 진짜 화면 높이로 강제 고정 */
         body { 
             font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; 
             -webkit-tap-highlight-color: transparent; 
-            height: 100vh; /* fallback */
-            height: calc(var(--vh, 1vh) * 100);
+            height: 100vh; height: calc(var(--vh, 1vh) * 100);
             overflow: hidden; display: flex; flex-direction: column;
         }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
@@ -47,7 +45,6 @@
         .animate-shake { animation: shake 0.3s ease-in-out; }
         .timer-critical { color: #e11d48; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
         .btn-active:active { transform: scale(0.92); }
         .content-text { font-size: 1.15rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; }
     </style>
@@ -177,19 +174,28 @@
                 try {
                     const cacheBuster = new Date().getTime();
                     const promises = [];
+                    let errorLog = []; // 🚨 에러 기록용 배열
                     
-                    for(let i=1; i<=50; i++) {
+                    for(let i=1; i<=25; i++) {
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
                         promises.push(
                             fetch(`${fileName}?v=${cacheBuster}`)
-                            .then(res => res.ok ? res.text() : null)
-                            .then(text => {
-                                if(!text) return null;
+                            .then(async res => {
+                                if(!res.ok) {
+                                    // 1번~20번 파일 중에 404 에러가 나면 기록!
+                                    if(i <= 20) errorLog.push(`❌ ${fileName}: 파일을 아예 찾을 수 없음 (오타 또는 Vercel 서버 업로드 안됨)`);
+                                    return null;
+                                }
+                                const text = await res.text();
                                 try {
                                     const json = JSON.parse(text);
                                     json.forEach(item => { if(!item.level) item.level = 'high'; });
                                     return json;
-                                } catch(err) { return null; }
+                                } catch(err) {
+                                    // JSON 형식이 깨졌으면 기록!
+                                    errorLog.push(`⚠️ ${fileName}: 내용 오류 (쉼표/대괄호 등 문법 깨짐)`);
+                                    return null;
+                                }
                             })
                             .catch(err => null)
                         );
@@ -215,6 +221,12 @@
                     });
 
                     this.applyFilters();
+
+                    // 🚨 에러가 발견되면 화면에 바로 경고창 띄우기!
+                    if(errorLog.length > 0) {
+                        alert("🚨 [원인 분석 완료] 🚨\n\n13번 파일부터 안 불려오는 이유를 찾았습니다:\n\n" + errorLog.join("\n"));
+                    }
+
                 } catch(e) { console.error(e); }
             },
 
@@ -278,7 +290,6 @@
                 document.getElementById('sessionTotal').textContent = data.cards.length;
                 document.getElementById('modeIndicator').textContent = "독해 중";
                 
-                // 세션 열릴 때 화면 크기 한번 더 보정
                 setScreenSize();
                 this.startTimer();
                 this.renderStudy();
