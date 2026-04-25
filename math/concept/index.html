@@ -197,7 +197,29 @@
                         } else break; 
                     }
                     
-                    this.db = allData;
+                    // JSON 데이터 자동 매핑 및 카테고리 분류 로직 추가
+                    this.db = allData.map(item => {
+                        let category = 'algebra'; // 기본 대수학
+                        const title = item.title || "";
+                        
+                        // 키워드를 통한 수학 카테고리 자동 분류
+                        if (title.match(/미분|적분|극한|연속|극한값|변화율/)) {
+                            category = 'calculus'; // 해석학
+                        } else if (title.match(/삼각|도형|원|기하|벡터|넓이|부피|길이|각도|좌표|평면|공간|직선|평행|정사영/)) {
+                            category = 'geometry'; // 기하학
+                        }
+
+                        return {
+                            category: item.category || category,
+                            concept: item.title || item.concept,
+                            formula: item.formula,
+                            story: item.why || item.story,
+                            // what(요약)과 how(증명)를 하나로 합쳐서 principle(원리)로 매핑
+                            principle: (item.what && item.how) ? `${item.what} ${item.how}` : item.principle,
+                            application: item.where || item.application
+                        };
+                    });
+
                     document.getElementById('wordCountLabel').textContent = `총 ${this.db.length}개의 수학 개념 활성화`;
                     this.renderGrid();
                 } catch(e) { 
@@ -239,138 +261,4 @@
             ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
             te(e) { 
                 const dx = e.changedTouches[0].screenX - this.tx; 
-                const dy = e.changedTouches[0].screenY - this.ty;
-                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { 
-                    this.isSwiping = true;
-                    if(dx > 0) this.navCard(-1); else this.navCard(1); 
-                } 
-            },
-            
-            navCard(dir) {
-                const wrap = document.getElementById('cardWrapper');
-                if(dir === -1 && this.sessionIdx === 0) return;
-                
-                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
-                wrap.classList.remove('slide-in');
-                wrap.classList.add(outClass);
-                
-                setTimeout(() => {
-                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
-                    else if(dir === 1) {
-                        if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
-                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
-                    }
-                    wrap.classList.remove(outClass);
-                    void wrap.offsetWidth; 
-                    wrap.classList.add('slide-in');
-                }, 300);
-            },
-            
-            startSession(words, dayNum, key) {
-                this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
-                document.getElementById('sessionLayer').classList.remove('hidden');
-                document.getElementById('sessionDayLabel').textContent = `Day ${dayNum}`;
-                document.getElementById('sessionTotal').textContent = words.length;
-                this.renderStudy();
-            },
-            
-            getCatName(eng) {
-                const map = { 'algebra': '대수학', 'calculus': '해석학(미적분)', 'geometry': '기하학' };
-                return map[eng] || '수학 원리';
-            },
-
-            renderStudy() {
-                const w = this.sessionWords[this.sessionIdx];
-                const card = document.getElementById('flashcard');
-                card.classList.remove('flipped');
-                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
-                
-                document.getElementById('lCategoryTag').textContent = this.getCatName(w.category);
-                document.getElementById('lConcept').textContent = w.concept;
-                document.getElementById('lFormula').innerHTML = w.formula;
-                document.getElementById('lStory').textContent = w.story;
-                document.getElementById('lPrinciple').textContent = w.principle;
-                document.getElementById('lApplication').textContent = w.application;
-                
-                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "테스트 시작" : "다음 개념";
-                this.ri();
-            },
-            
-            switchMode(m) {
-                this.mode = m;
-                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
-                document.getElementById(`${m}UI`).classList.remove('hidden');
-                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.loadQuiz(); }
-                else if(m === 'study') { this.sessionIdx = 0; this.renderStudy(); }
-            },
-            
-            loadQuiz() {
-                if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
-                this.isAns = false; 
-                const w = this.sessionWords[this.sessionIdx];
-                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
-                document.getElementById('qBar').style.width = `${(this.sessionIdx/this.sessionWords.length)*100}%`;
-                
-                document.getElementById('qStory').textContent = w.story;
-                
-                const hintBtn = document.getElementById('qHint').previousElementSibling;
-                hintBtn.classList.remove('hidden');
-                document.getElementById('qHint').classList.add('hidden');
-                document.getElementById('qHintFormula').innerHTML = w.formula;
-                
-                const cont = document.getElementById('qOptions'); 
-                cont.innerHTML = '';
-                
-                const opts = [{t:w.concept, c:true}, ...this.db.filter(x=>x.concept!==w.concept).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.concept, c:false}))].sort(()=>Math.random()-0.5);
-                
-                const frag = document.createDocumentFragment();
-                opts.forEach(o => {
-                    const b = document.createElement('button');
-                    b.className = "w-full text-center p-5 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 text-lg transition-all";
-                    b.textContent = o.t;
-                    b.onclick = () => { 
-                        if(this.isAns) return; 
-                        this.isAns = true; 
-                        
-                        if(o.c) {
-                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-yellow-500 bg-yellow-50 text-yellow-700 text-lg font-black"; 
-                            this.score++; 
-                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 600); 
-                        } else {
-                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-700 text-lg font-black animate-shake"; 
-                            this.wrongs.push(w);
-                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); 
-                        }
-                    };
-                    frag.appendChild(b);
-                });
-                cont.appendChild(frag);
-            },
-            
-            showResult() {
-                this.mode = 'result'; 
-                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
-                document.getElementById('resultUI').classList.remove('hidden');
-                
-                document.getElementById('fCorrect').textContent = this.score;
-                document.getElementById('fTotal').textContent = this.sessionWords.length;
-                this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
-                localStorage.setItem('math_history', JSON.stringify(this.history));
-                
-                const list = document.getElementById('wrongList'); list.innerHTML = '';
-                if(this.wrongs.length > 0) {
-                    document.getElementById('wrongReview').classList.remove('hidden');
-                    list.innerHTML = this.wrongs.map(w => `<li class="bg-white p-4 rounded-xl border border-rose-100"><p class="font-black text-slate-800 text-lg mb-1">${w.concept}</p><p class="text-rose-500 text-[11px] font-bold mt-1">${w.principle}</p></li>`).join('');
-                }
-                this.ri();
-            },
-            
-            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
-            exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
-            resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('math_history'); location.reload(); } },
-            ri() { if(window.lucide) window.lucide.createIcons(); }
-        };
-        window.onload = () => app.init();
-    </script>
-</body>
-</html>
+                const dy = e.changedTouches[0].screenY -
