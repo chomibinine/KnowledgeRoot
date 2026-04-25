@@ -14,12 +14,12 @@
         
         #cardWrapper { position: relative; width: 100%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
         
-        /* 높이 고정값을 없애고 유연하게 늘어나고 줄어들게 변경 */
+        /* 🚨 버그 수정: 높이 고정값을 없애고 화면에 맞게 유연하게 줄어들도록 강제 설정 */
         .literacy-card { 
             width: 100%; flex: 1; min-height: 0;
             border-radius: 2rem; display: flex; flex-direction: column; 
             box-shadow: 0 20px 40px -15px rgba(219, 39, 119, 0.15); border: 1px solid #fce7f3; 
-            background: white; overflow-y: auto; padding: 1.5rem;
+            background: white; overflow: hidden; padding: 1.5rem;
         }
 
         .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
@@ -97,9 +97,9 @@
 
         <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
             
-            <div id="studyUI" class="flex-1 flex flex-col w-full max-w-md mx-auto h-full">
+            <div id="studyUI" class="flex-1 flex flex-col w-full max-w-md mx-auto min-h-0">
                 <div id="cardWrapper" class="w-full flex-1 flex flex-col slide-in min-h-0 pb-4">
-                    <div class="literacy-card custom-scroll relative">
+                    <div class="literacy-card relative">
                         <div class="flex items-center gap-2 mb-4 shrink-0">
                             <span id="lLevelTag" class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-md text-[9px] font-black uppercase border border-slate-200">LEVEL</span>
                             <span id="lTopicTag" class="px-2.5 py-1 bg-pink-50 text-pink-600 rounded-md text-[9px] font-black uppercase border border-pink-100">TOPIC</span>
@@ -160,6 +160,7 @@
                     const cacheBuster = new Date().getTime();
                     const promises = [];
                     
+                    // 🚀 1~50번 병렬 로딩
                     for(let i=1; i<=50; i++) {
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
                         promises.push(
