@@ -1,3 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>180초 문해력 Pro | LiteracyRoot - Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+        
+        #cardWrapper { position: relative; width: 100%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+        
+        .literacy-card { 
+            width: 100%; height: calc(100vh - 250px); min-height: 480px; max-height: 600px;
+            border-radius: 2.5rem; display: flex; flex-direction: column; 
+            box-shadow: 0 20px 40px -15px rgba(219, 39, 119, 0.15); border: 1px solid #fce7f3; 
+            background: white; overflow: hidden; padding: 2rem;
+        }
+
+        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
+        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
+        .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
+        @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+        .timer-critical { color: #e11d48; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .btn-active:active { transform: scale(0.92); }
+        .content-text { font-size: 1.25rem; line-height: 1.8; word-break: keep-all; font-weight: 500; color: #1f2937; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+
+    <header class="bg-white border-b border-pink-100 shrink-0 px-4 py-4 shadow-sm relative z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-pink-500 p-2 rounded-xl shadow-lg"><i data-lucide="zap" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">180초 <span class="text-pink-500">문해력</span></h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="timerDisplay" class="font-black text-lg text-slate-400 font-mono">03:00</div>
+                <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-pink-500 transition-colors">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-5 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-pink-100 shadow-sm">
+                <div>
+                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">학습 현황</h2>
+                    <span id="wordCountLabel" class="text-[11px] font-bold text-pink-600 uppercase tracking-widest mt-2 block">지문 로드 중...</span>
+                </div>
+                <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">난이도</p>
+                    <select id="filterLevel" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">전체 난이도</option>
+                        <option value="middle">중학 수준</option>
+                        <option value="high">고등 수준</option>
+                    </select>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
+                    <select id="filterTopic" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">모든 분야</option>
+                        </select>
+                </div>
+            </div>
+
+            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+    </main>
+
+    <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden">
+        <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
+            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
+            <div class="text-center">
+                <span id="sessionDayLabel" class="text-[10px] font-black text-pink-600 uppercase tracking-widest">CHAPTER</span>
+                <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
+                    <div class="px-4 py-1 text-[11px] font-black rounded-md bg-white shadow-sm text-pink-700" id="modeIndicator">독해 중</div>
+                </div>
+            </div>
+            <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-pink-600 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">5</span></div>
+        </div>
+
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+            
+            <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
+                <div id="cardWrapper" class="w-full slide-in">
+                    <div class="literacy-card custom-scroll">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span id="lLevelTag" class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase border border-slate-200">LEVEL</span>
+                            <span id="lTopicTag" class="px-3 py-1 bg-pink-50 text-pink-600 rounded-lg text-[10px] font-black uppercase border border-pink-100">TOPIC</span>
+                        </div>
+                        <p id="lContent" class="content-text flex-1"></p>
+                        <p class="text-pink-200 text-[10px] font-black uppercase tracking-[0.3em] mt-6 text-center">스와이프로 카드 넘기기</p>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-4 w-full">
+                    <button onclick="app.navCard(-1)" class="h-16 w-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
+                    <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">다음 카드</button>
+                </div>
+            </div>
+
+            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-8 mb-6 mt-4 border border-pink-100 text-center relative overflow-hidden shrink-0">
+                    <p class="text-slate-400 font-black text-[11px] uppercase tracking-widest mb-4">핵심 내용 확인</p>
+                    <h3 id="qQuestion" class="text-xl font-black text-slate-800 leading-relaxed mb-2 word-keep-all"></h3>
+                </div>
+                <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
+            </div>
+
+            <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
+                <div class="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="check-circle" class="text-pink-600 w-12 h-12"></i></div>
+                <h2 class="text-4xl font-black text-slate-900 mb-1">지문 돌파!</h2>
+                <div id="resultTime" class="text-pink-500 font-black text-xl mb-8 uppercase tracking-widest">Time: 00:00</div>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">목록으로 돌아가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
+            <h4 class="text-xl font-black text-slate-900 mb-2">중단할까요?</h4>
+            <div class="grid grid-cols-2 gap-3 mt-8">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-4 bg-slate-100 rounded-2xl font-black text-slate-500 text-sm">계속하기</button>
+                <button onclick="app.exitNow()" class="py-4 bg-rose-500 rounded-2xl font-black text-white text-sm">중단</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            fullDb: [], filteredDb: [], history: {}, sessionCards: [], sessionIdx: 0,
+            mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            timer: 180, timerInt: null, startTime: 0, isAns: false,
+            
+            async init() {
+                this.loadHistory();
+                await this.loadData();
+                this.ri();
+            },
+            
             async loadData() {
                 try {
                     let allData = [];
@@ -20,6 +174,7 @@
                                     allData = allData.concat(json);
                                 } catch(parseErr) {
                                     alert(`🚨 에러: ${file0X} 파일에 오타가 있습니다!`);
+                                    console.error(parseErr);
                                 }
                             } else {
                                 emptyCount++;
@@ -27,7 +182,7 @@
                                 if(emptyCount >= 10) break; 
                             }
                         } catch(err) { 
-                            // 🚀 통신 에러가 나도 멈추지 않고 다음 파일로 넘어감 (continue)
+                            // 통신 에러가 나도 멈추지 않고 다음 파일로 넘어감
                             console.error("Fetch error:", err);
                             emptyCount++;
                             if(emptyCount >= 10) break;
@@ -49,3 +204,170 @@
                     this.applyFilters();
                 } catch(e) { console.error(e); }
             },
+
+            applyFilters() {
+                const lvl = document.getElementById('filterLevel').value;
+                const top = document.getElementById('filterTopic').value;
+
+                this.filteredDb = this.fullDb.filter(item => {
+                    const matchLvl = (lvl === 'all' || item.level === lvl);
+                    const matchTop = (top === 'all' || item.topic === top);
+                    return matchLvl && matchTop;
+                });
+
+                document.getElementById('wordCountLabel').textContent = `검색된 지문: 총 ${this.filteredDb.length}개`;
+                this.renderGrid();
+            },
+            
+            loadHistory() { const h = localStorage.getItem('literacy_history'); if(h) this.history = JSON.parse(h); },
+            
+            renderGrid() {
+                const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
+                const frag = document.createDocumentFragment();
+                let completedCount = 0;
+
+                this.filteredDb.forEach((item, i) => {
+                    // 고유 키를 title로 사용하여 필터링 후에도 클리어 기록 유지
+                    const key = `lit_${item.title}`;
+                    const done = this.history[key];
+                    if(done) completedCount++;
+
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-5 rounded-[2.2rem] border border-pink-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]";
+                    card.onclick = () => this.startSession(item, i+1, key);
+                    
+                    const lvlLabel = item.level === 'middle' ? 'M' : 'H';
+
+                    card.innerHTML = `
+                        ${done ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}
+                        <div class="absolute top-3 left-3 bg-slate-100 text-slate-400 font-black text-[9px] px-2 py-0.5 rounded-md">${lvlLabel}</div>
+                        <div class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-1 rounded-md self-center mb-2 mt-2">${item.topic}</div>
+                        <h3 class="font-bold text-slate-800 text-sm mb-1 leading-snug word-keep-all">${item.title}</h3>
+                        <p class="text-[9px] font-black text-pink-400 uppercase tracking-widest mt-auto">${done ? 'Cleared' : 'Ready'}</p>
+                    `;
+                    frag.appendChild(card);
+                });
+                grid.appendChild(frag);
+                
+                const pct = this.filteredDb.length > 0 ? Math.round((completedCount / this.filteredDb.length) * 100) : 0;
+                document.getElementById('totalProgressText').textContent = `분석률 ${pct}%`;
+                this.ri();
+            },
+
+            startSession(data, num, key) {
+                this.sessionCards = data.cards; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
+                this.sessionData = data;
+                
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('studyUI').classList.remove('hidden');
+
+                document.getElementById('sessionLayer').classList.remove('hidden');
+                document.getElementById('sessionDayLabel').textContent = `CHAPTER ${num}`;
+                document.getElementById('sessionTotal').textContent = data.cards.length;
+                document.getElementById('modeIndicator').textContent = "독해 중";
+                this.startTimer();
+                this.renderStudy();
+            },
+
+            startTimer() {
+                this.timer = 180; this.startTime = Date.now();
+                clearInterval(this.timerInt);
+                this.timerInt = setInterval(() => {
+                    this.timer--;
+                    const m = Math.floor(this.timer / 60);
+                    const s = this.timer % 60;
+                    const display = document.getElementById('timerDisplay');
+                    display.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                    if(this.timer <= 30) display.classList.add('timer-critical');
+                    else display.classList.remove('timer-critical');
+                    if(this.timer <= 0) { clearInterval(this.timerInt); alert("시간 초과! 다시 시도하세요."); this.exitNow(); }
+                }, 1000);
+            },
+
+            renderStudy() {
+                const c = this.sessionCards[this.sessionIdx];
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                document.getElementById('lLevelTag').textContent = this.sessionData.level === 'middle' ? '중학' : '고등';
+                document.getElementById('lTopicTag').textContent = this.sessionData.topic;
+                document.getElementById('lContent').textContent = c;
+                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionCards.length - 1 ? "이해 확인" : "다음 카드";
+                this.ri();
+            },
+
+            navCard(dir) {
+                const wrap = document.getElementById('cardWrapper');
+                if(dir === -1 && this.sessionIdx === 0) return;
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                wrap.classList.remove('slide-in'); wrap.classList.add(outClass);
+                setTimeout(() => {
+                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
+                    else {
+                        if(this.sessionIdx < this.sessionCards.length - 1) { this.sessionIdx++; this.renderStudy(); }
+                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
+                    }
+                    wrap.classList.remove(outClass); void wrap.offsetWidth; wrap.classList.add('slide-in');
+                }, 300);
+            },
+
+            switchMode(m) {
+                this.mode = m;
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById(`${m}UI`).classList.remove('hidden');
+                
+                if(m === 'quiz') {
+                    document.getElementById('modeIndicator').textContent = "이해 확인";
+                    this.isAns = false; 
+                    const q = this.sessionData.quiz;
+                    document.getElementById('qQuestion').textContent = q.question;
+                    const cont = document.getElementById('qOptions'); cont.innerHTML = '';
+                    q.options.forEach(opt => {
+                        const b = document.createElement('button');
+                        b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-bold text-slate-700 text-base transition-all";
+                        b.textContent = opt;
+                        b.onclick = () => {
+                            if (this.isAns) return; 
+                            if(opt === q.answer) { 
+                                this.isAns = true;
+                                b.classList.replace('border-slate-200','border-pink-500'); 
+                                b.classList.add('bg-pink-50'); 
+                                setTimeout(()=>this.showResult(), 600); 
+                            }
+                            else { 
+                                b.classList.add('animate-shake', 'border-rose-500', 'bg-rose-50'); 
+                            }
+                        };
+                        cont.appendChild(b);
+                    });
+                }
+            },
+
+            showResult() {
+                clearInterval(this.timerInt);
+                this.mode = 'result';
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('resultUI').classList.remove('hidden');
+                document.getElementById('modeIndicator').textContent = "완료";
+                
+                const elapsed = 180 - this.timer;
+                document.getElementById('resultTime').textContent = `Time: ${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
+                
+                this.history[this.currentKey] = true;
+                localStorage.setItem('literacy_history', JSON.stringify(this.history));
+                this.ri();
+            },
+
+            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
+            te(e) {
+                const dx = e.changedTouches[0].screenX - this.tx;
+                const dy = e.changedTouches[0].screenY - this.ty;
+                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { this.isSwiping = true; if(dx > 0) this.navCard(-1); else this.navCard(1); }
+            },
+            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
+            exitNow() { clearInterval(this.timerInt); document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('literacy_history'); location.reload(); } },
+            ri() { if(window.lucide) window.lucide.createIcons(); }
+        };
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
