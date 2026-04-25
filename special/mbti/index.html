@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MBTI 학습 진단 | MbtiRoot - Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f5f3ff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 10px; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn-active:active { transform: scale(0.96); }
+        .option-btn { transition: all 0.2s; }
+        .option-btn:active { background-color: #ede9fe; border-color: #8b5cf6; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col select-none">
+
+    <header class="bg-white border-b border-violet-100 shrink-0 px-4 py-4 shadow-sm sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-violet-600 p-2 rounded-xl shadow-lg"><i data-lucide="compass" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">학습 성향 <span class="text-violet-600">진단</span></h1>
+            </div>
+            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-violet-600 transition-colors">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md w-full relative">
+            
+            <div id="introUI" class="bg-white rounded-[2.5rem] shadow-xl p-8 border border-violet-100 text-center fade-in">
+                <div class="w-24 h-24 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="brain-circuit" class="text-violet-600 w-12 h-12"></i>
+                </div>
+                <h2 class="text-3xl font-black text-slate-900 mb-2">나만의 학습 DNA</h2>
+                <p class="text-slate-500 font-medium text-sm mb-8 leading-relaxed">남들이 다 하는 공부법이 나한테 안 맞는 이유?<br>12문항 테스트로 내 성향에 딱 맞는<br>지식 뿌리 학습 코스를 추천받으세요.</p>
+                <button onclick="app.startTest()" class="w-full py-5 bg-violet-600 text-white rounded-2xl font-black text-lg shadow-[0_8px_30px_rgb(124,58,237,0.3)] btn-active">테스트 시작하기</button>
+            </div>
+
+            <div id="questionUI" class="hidden bg-white rounded-[2.5rem] shadow-xl p-8 border border-violet-100 fade-in">
+                <div class="mb-8">
+                    <div class="flex justify-between items-end mb-2">
+                        <span class="text-[11px] font-black text-violet-500 uppercase tracking-widest">Question <span id="qNum">1</span>/12</span>
+                        <span class="text-[10px] font-bold text-slate-300" id="qProgressPct">0%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                        <div id="qBar" class="h-full bg-violet-500 transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+                <h3 id="qText" class="text-2xl font-black text-slate-800 leading-snug mb-8 word-keep-all text-center min-h-[5rem] flex items-center justify-center">질문 내용</h3>
+                <div class="flex flex-col gap-3">
+                    <button id="optA" onclick="app.selectOption('A')" class="option-btn w-full text-left p-5 rounded-2xl border-2 border-slate-100 bg-white font-bold text-slate-700 text-[15px] leading-relaxed word-keep-all"></button>
+                    <button id="optB" onclick="app.selectOption('B')" class="option-btn w-full text-left p-5 rounded-2xl border-2 border-slate-100 bg-white font-bold text-slate-700 text-[15px] leading-relaxed word-keep-all"></button>
+                </div>
+            </div>
+
+            <div id="loadingUI" class="hidden bg-white rounded-[2.5rem] shadow-xl p-12 border border-violet-100 text-center fade-in">
+                <i data-lucide="loader-2" class="w-16 h-16 text-violet-500 animate-spin mx-auto mb-6"></i>
+                <h3 class="text-xl font-black text-slate-800 mb-2">학습 DNA 분석 중...</h3>
+                <p class="text-sm text-slate-400 font-medium">가장 완벽한 학습 코스를 찾고 있습니다.</p>
+            </div>
+
+            <div id="resultUI" class="hidden fade-in">
+                <div class="bg-white rounded-[2.5rem] shadow-xl p-8 border border-violet-100 text-center mb-4">
+                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">분석 완료! 당신의 학습 유형은?</p>
+                    <h2 id="rMbti" class="text-5xl font-black text-violet-600 tracking-tighter mb-1">INTJ</h2>
+                    <h3 id="rTitle" class="text-xl font-black text-slate-800 mb-6 word-keep-all">원리를 파헤치는 심층 분석가</h3>
+                    
+                    <div class="bg-violet-50 p-5 rounded-2xl text-left mb-6">
+                        <p id="rDesc" class="text-[14px] text-violet-900 font-medium leading-relaxed word-keep-all"></p>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-6 text-left">
+                        <p class="text-[11px] font-black text-violet-500 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i data-lucide="target" class="w-4 h-4"></i> 추천 학습 모듈</p>
+                        <div id="rRecommendCard" class="bg-slate-900 rounded-2xl p-4 text-white flex items-center justify-between cursor-pointer btn-active shadow-lg" onclick="">
+                            <div>
+                                <h4 id="rModName" class="font-black text-lg text-white mb-0.5">공식의 뿌리</h4>
+                                <p id="rModDesc" class="text-[11px] text-slate-400 font-bold">수학의 원리와 탄생 스토리 분석</p>
+                            </div>
+                            <i data-lucide="arrow-right" class="text-slate-400 w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="app.resetTest()" class="w-full py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl font-black text-sm btn-active shadow-sm">다시 테스트하기</button>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const qData = [
+            // E vs I
+            { text: "새로운 과목을 공부할 때 나는?", A: { text: "친구들과 토론하거나 질문하며 배우는 게 빠르다.", val: "E" }, B: { text: "혼자 조용히 책을 읽으며 정리하는 게 빠르다.", val: "I" } },
+            { text: "시험 기간에 도서관에 갔는데 아는 친구가 많다.", A: { text: "반갑다! 쉬는 시간에 같이 떠들며 스트레스를 푼다.", val: "E" }, B: { text: "인사만 하고 내 자리로 가서 혼자만의 존(Zone)에 들어간다.", val: "I" } },
+            { text: "모르는 문제가 생겼을 때 나의 행동은?", A: { text: "일단 선생님이나 친구에게 바로 물어본다.", val: "E" }, B: { text: "해설지를 보거나 검색해서 스스로 끝까지 파헤친다.", val: "I" } },
+            // S vs N
+            { text: "역사 공부를 할 때 더 선호하는 방식은?", A: { text: "연도별 사건, 인물 등 팩트(Fact) 위주로 깔끔하게 암기한다.", val: "S" }, B: { text: "왜 그런 사건이 일어났는지 시대적 배경과 흐름(Story)을 이해한다.", val: "N" } },
+            { text: "영어 단어를 외울 때 나는?", A: { text: "단어장 그대로 스펠링과 뜻을 반복해서 외운다.", val: "S" }, B: { text: "어원이나 파생어를 연결해서 마인드맵처럼 외운다.", val: "N" } },
+            { text: "수학 문제를 풀 때 내 스타일은?", A: { text: "배운 공식과 풀이 과정을 정확하게 대입해서 푼다.", val: "S" }, B: { text: "이 공식이 왜 나왔는지 원리를 이해해야 직성이 풀린다.", val: "N" } },
+            // T vs F
+            { text: "성적이 떨어졌을 때 나를 더 자극하는 말은?", A: { text: "'너 저번보다 수학 점수 10점 떨어졌네. 오답 분석해봐.' (팩트 폭격)", val: "T" }, B: { text: "'괜찮아, 이번에 많이 힘들었지? 다음엔 잘할 수 있을 거야.' (따뜻한 위로)", val: "F" } },
+            { text: "스터디 그룹에서 계획을 세울 때 나는?", A: { text: "효율성이 최고! 철저하게 분량을 나누고 규칙을 정한다.", val: "T" }, B: { text: "분위기가 최고! 서로 부담스럽지 않게 의견을 조율한다.", val: "F" } },
+            { text: "비문학 지문을 읽을 때 나의 뇌구조는?", A: { text: "글의 구조, 핵심 문장, 논리 전개 방식을 구조적으로 분석한다.", val: "T" }, B: { text: "글쓴이의 의도나 지문 내용의 사회적 맥락에 공감하며 읽는다.", val: "F" } },
+            // J vs P
+            { text: "시험 한 달 전, 나의 플래너 상태는?", A: { text: "일별/주별로 무슨 과목을 몇 페이지까지 할지 다 적혀 있다.", val: "J" }, B: { text: "대략적인 목표만 있고, 그날그날 끌리는 과목을 공부한다.", val: "P" } },
+            { text: "주말에 공부하려고 했는데 갑자기 친구가 놀자고 한다.", A: { text: "이미 세워둔 공부 계획이 틀어지는 게 싫어서 거절한다.", val: "J" }, B: { text: "일단 놀고, 공부는 밤에 하거나 내일로 미룬다.", val: "P" } },
+            { text: "책상 정리 스타일은?", A: { text: "과목별로 책이 각 잡혀 있어야 공부가 시작된다.", val: "J" }, B: { text: "약간 어질러져 있어도 내가 어디 있는지 알면 그만이다.", val: "P" } }
+        ];
+
+        const rData = {
+            "ISTJ": { title: "완벽주의 계획러", desc: "주어진 사실을 정확히 기억하고 철저한 계획을 세우는 모범생 타입입니다. 헷갈리는 예외 규정이나 정확한 암기가 필요한 국어 문법 영역에서 엄청난 강점을 발휘합니다.", modName: "맞춤법 & 문법의 뿌리", modDesc: "규정과 팩트를 깔끔하게 정리하는 모듈", link: "../../lang/grammar/index.html" },
+            "ISFJ": { title: "성실한 기억 은행", desc: "차분하고 꼼꼼하게 지식을 차곡차곡 쌓아가는 타입입니다. 파편화된 단어보다는 어원을 통해 체계적으로 정리된 영단어 학습이 가장 큰 시너지를 냅니다.", modName: "VocaRoot (영단어)", modDesc: "접두사/어근으로 체계적인 단어 확장", link: "../../lang/voca/index.html" },
+            "INFJ": { title: "통찰력 있는 학자", desc: "현상 이면의 본질을 꿰뚫어보는 통찰력이 뛰어납니다. 단순한 공식 암기보다는 '왜?'라는 질문을 던지며 수학 공식의 탄생 배경을 이해할 때 학습 효율이 극대화됩니다.", modName: "공식의 뿌리 (수학)", modDesc: "수학 공식의 원리와 탄생 스토리 분석", link: "../../math/concept/index.html" },
+            "INTJ": { title: "논리적 시스템 설계자", desc: "복잡한 정보를 구조화하고 분석하는 능력이 탁월합니다. 수능 비문학이나 경제/법 지문에 등장하는 어려운 개념어들을 논리적으로 스캔하고 뼈대를 잡는 훈련이 잘 맞습니다.", modName: "비문학 스캐너", modDesc: "사회/경제 필수 개념어 논리적 분석", link: "../../explore/society/index.html" },
+            "ISTP": { title: "효율 추구 실용주의자", desc: "군더더기를 싫어하고 효율을 중시합니다. 긴 글을 읽는 것보다 짧고 굵게 핵심만 파악하는 타임어택 훈련이 집중력을 최대로 끌어올려 줍니다.", modName: "180초 숏폼 문해력", modDesc: "시간제한으로 뇌를 자극하는 독해", link: "../180s-literacy/index.html" },
+            "ISFP": { title: "조용한 감성러", desc: "편안하고 릴랙스한 환경에서 정보가 가장 잘 흡수됩니다. 시각적 자극을 줄이고 청각에 집중하여, 잠들기 전이나 이동 중에 듣는 학습이 효과적입니다.", modName: "ASMR 오디오 단어장", modDesc: "화면을 끄고 편안하게 듣는 학습", link: "../audio/index.html" },
+            "INFP": { title: "상상력 풍부한 이야기꾼", desc: "스토리텔링과 의미 부여를 좋아합니다. 딱딱한 정보보다는 역사적 인물이나 고사가 담긴 사자성어의 유래를 읽을 때 한 편의 영화처럼 지식을 흡수합니다.", modName: "사자성어 뿌리", modDesc: "역사적 스토리로 각인되는 성어 사전", link: "../../lang/saja/index.html" },
+            "INTP": { title: "지적 호기심 탐구자", desc: "원리를 이해하지 못하면 넘어가지 못하는 과학자 타입입니다. 외계어 같은 과학 용어가 도대체 어떤 어원으로 만들어졌는지 해부하는 과정을 가장 즐깁니다.", modName: "과학 용어의 뿌리", modDesc: "어원 분해로 이해하는 과학 개념", link: "../../explore/science/index.html" },
+            "ESTP": { title: "행동파 승부사", desc: "지루한 인강보다는 게임처럼 즉각적인 피드백과 보상이 있는 학습을 좋아합니다. 타임어택이 걸린 180초 문해력 퀴즈가 당신의 승부욕을 자극할 것입니다.", modName: "180초 숏폼 문해력", modDesc: "긴장감 넘치는 스와이프 독해 퀴즈", link: "../180s-literacy/index.html" },
+            "ESFP": { title: "분위기 메이커", desc: "즐겁고 활동적인 에너지가 넘칩니다. 딱딱한 텍스트보다는 재미있는 예문과 소리로 직접 듣고 따라 할 수 있는 오디오 융합 학습이나 가벼운 단어 퀴즈가 잘 맞습니다.", modName: "VocaRoot (영단어)", modDesc: "발음 듣기와 직관적인 카드 뒤집기", link: "../../lang/voca/index.html" },
+            "ENFP": { title: "호기심 폭발 스펀지", desc: "관심 있는 분야는 무서운 속도로 흡수하는 스펀지 같습니다. 한자를 부수와 결합 원리로 분해하며 퍼즐 맞추듯 공부하는 한자 뿌리가 호기심을 채워줄 것입니다.", modName: "한자 뿌리", modDesc: "부수 조립으로 파헤치는 한자 퍼즐", link: "../../lang/hanja/index.html" },
+            "ENTP": { title: "다재다능 토론가", desc: "논리적인 허점을 찾아내고 분석하는 것을 즐깁니다. 경제 현상이나 법적 쟁점을 다루는 비문학 지문을 스캔하며 비판적 사고력을 기르는 것이 최고의 공부법입니다.", modName: "비문학 스캐너", modDesc: "독해력을 끌어올리는 개념어 분석", link: "../../explore/society/index.html" },
+            "ESTJ": { title: "목표 지향적 추진러", desc: "명확한 목표와 체계적인 규칙을 좋아합니다. 예외 없이 딱딱 맞아떨어지는 문법 규정을 정리하거나, 확실한 수치로 나타나는 수학 공식을 정리할 때 희열을 느낍니다.", modName: "맞춤법 & 문법의 뿌리", modDesc: "내신 감점 방어! 명확한 규정 정리", link: "../../lang/grammar/index.html" },
+            "ESFJ": { title: "친절한 협력가", desc: "책임감이 강하고 배운 것을 남에게 설명할 때 가장 잘 이해하는 타입입니다. 고사성어에 담긴 교훈과 스토리를 익혀 실생활에 활용하는 학습이 잘 맞습니다.", modName: "사자성어 뿌리", modDesc: "실전 예문과 스토리가 가득한 성어", link: "../../lang/saja/index.html" },
+            "ENFJ": { title: "열정적인 멘토", desc: "의미 있는 학습과 사람에 대한 탐구를 좋아합니다. 인문학적 소양을 기를 수 있는 언어의 뿌리(어원 분석)나 사자성어를 통해 큰 그림을 그리는 공부가 적합합니다.", modName: "VocaRoot (영단어)", modDesc: "단어의 탄생 배경과 문맥을 이해하는 학습", link: "../../lang/voca/index.html" },
+            "ENTJ": { title: "전략적 사령관", desc: "효율적인 시스템과 장기적인 비전을 중시합니다. 수능 최고난도 영역인 과학이나 경제 비문학 개념을 최상위권의 시각(원리)에서 구조화하는 훈련이 필요합니다.", modName: "과학 용어의 뿌리", modDesc: "복잡한 용어를 직관적으로 지배하는 방법", link: "../../explore/science/index.html" }
+        };
+
+        const app = {
+            scores: { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 },
+            idx: 0,
+            
+            init() { if(window.lucide) window.lucide.createIcons(); },
+            
+            startTest() {
+                this.scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+                this.idx = 0;
+                document.getElementById('introUI').classList.add('hidden');
+                document.getElementById('resultUI').classList.add('hidden');
+                document.getElementById('questionUI').classList.remove('hidden');
+                this.renderQ();
+            },
+            
+            renderQ() {
+                const q = qData[this.idx];
+                document.getElementById('qNum').textContent = this.idx + 1;
+                
+                const pct = Math.round((this.idx / qData.length) * 100);
+                document.getElementById('qProgressPct').textContent = `${pct}%`;
+                document.getElementById('qBar').style.width = `${pct}%`;
+                
+                // 질문 교체 애니메이션 처리
+                const qText = document.getElementById('qText');
+                qText.style.opacity = 0;
+                setTimeout(() => {
+                    qText.textContent = q.text;
+                    document.getElementById('optA').textContent = q.A.text;
+                    document.getElementById('optB').textContent = q.B.text;
+                    qText.style.opacity = 1;
+                    qText.style.transition = 'opacity 0.2s';
+                }, 150);
+            },
+            
+            selectOption(choice) {
+                const val = qData[this.idx][choice].val;
+                this.scores[val]++;
+                this.idx++;
+                
+                if (this.idx < qData.length) {
+                    this.renderQ();
+                } else {
+                    this.calcResult();
+                }
+            },
+            
+            calcResult() {
+                document.getElementById('questionUI').classList.add('hidden');
+                document.getElementById('loadingUI').classList.remove('hidden');
+                
+                let mbti = "";
+                mbti += this.scores.E >= this.scores.I ? "E" : "I";
+                mbti += this.scores.S >= this.scores.N ? "S" : "N";
+                mbti += this.scores.T >= this.scores.F ? "T" : "F";
+                mbti += this.scores.J >= this.scores.P ? "J" : "P";
+                
+                setTimeout(() => {
+                    document.getElementById('loadingUI').classList.add('hidden');
+                    this.showResult(mbti);
+                }, 1500); // 1.5초 로딩 효과
+            },
+            
+            showResult(mbti) {
+                const res = rData[mbti] || rData["ENFP"]; // fallback
+                document.getElementById('rMbti').textContent = mbti;
+                document.getElementById('rTitle').textContent = res.title;
+                document.getElementById('rDesc').textContent = res.desc;
+                document.getElementById('rModName').textContent = res.modName;
+                document.getElementById('rModDesc').textContent = res.modDesc;
+                
+                const card = document.getElementById('rRecommendCard');
+                card.onclick = () => window.location.href = res.link;
+                
+                document.getElementById('resultUI').classList.remove('hidden');
+            },
+            
+            resetTest() {
+                this.startTest();
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
