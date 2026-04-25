@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>문해력 Pro v2.0 | Knowledge Root</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>문해력 Pro v3.0 | Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* 🚨 안드로이드/iOS 하단바 버그를 잡는 특수 CSS */
         :root { --vh: 1vh; }
         html, body { height: 100%; height: -webkit-fill-available; margin: 0; padding: 0; overflow: hidden; }
         
@@ -16,9 +16,9 @@
             font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; 
             height: calc(var(--vh, 1vh) * 100);
             display: flex; flex-direction: column; position: fixed; inset: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* 🚨 버튼이 잘리지 않게 바닥에 띄워서 고정하는 핵심 디자인 */
         .bottom-action-area {
             position: fixed; bottom: 20px; left: 16px; right: 16px; 
             z-index: 1000; display: flex; gap: 12px;
@@ -27,7 +27,7 @@
 
         .literacy-card-container {
             position: absolute; top: 70px; left: 16px; right: 16px; 
-            bottom: 100px; /* 버튼 영역 확보 */
+            bottom: 100px; 
             display: flex; flex-direction: column;
         }
 
@@ -38,10 +38,15 @@
         }
 
         .content-text { font-size: 1.1rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; overflow-y: auto; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+        
         #cardWrapper { height: 100%; display: flex; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .slide-out-left { transform: translateX(-120%) rotate(-5deg); opacity: 0; }
         .slide-out-right { transform: translateX(120%) rotate(5deg); opacity: 0; }
         .btn-active:active { transform: scale(0.92); }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     </style>
 </head>
 <body class="text-slate-800">
@@ -49,7 +54,7 @@
     <header class="bg-white border-b border-pink-100 px-4 py-3 shrink-0 flex justify-between items-center z-50">
         <div class="flex items-center gap-2">
             <div class="bg-pink-500 p-1.5 rounded-lg"><i data-lucide="zap" class="text-white w-4 h-4"></i></div>
-            <h1 class="text-base font-black tracking-tighter">문해력 <span class="text-pink-500">v2.0</span></h1>
+            <h1 class="text-base font-black tracking-tighter">문해력 <span class="text-pink-500">v3.0</span></h1>
         </div>
         <div id="timerDisplay" class="font-mono font-black text-pink-500 text-sm">03:00</div>
         <button onclick="location.href='../../index.html'" class="p-2 bg-slate-50 rounded-lg text-slate-400"><i data-lucide="home" class="w-4 h-4"></i></button>
@@ -58,9 +63,27 @@
     <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24 custom-scroll">
         <div class="max-w-md mx-auto">
             <div class="bg-white p-5 rounded-3xl border border-pink-100 shadow-sm mb-4">
-                <h2 id="totalProgressText" class="text-xl font-black mb-1">분석률 0%</h2>
-                <p id="wordCountLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">파일 스캔 중...</p>
+                <h2 id="totalProgressText" class="text-xl font-black mb-1">엔진 가동 중...</h2>
+                <p id="wordCountLabel" class="text-[11px] font-bold text-pink-500 uppercase tracking-widest animate-pulse">01번 파일 스캔 시작!</p>
             </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">난이도</p>
+                    <select id="filterLevel" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[13px] outline-none text-center text-slate-700">
+                        <option value="all">전체 난이도</option>
+                        <option value="middle">중학 수준</option>
+                        <option value="high">고등 수준</option>
+                    </select>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
+                    <select id="filterTopic" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[13px] outline-none text-center text-slate-700">
+                        <option value="all">모든 분야</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="daysGrid" class="grid grid-cols-2 gap-3 pb-10"></div>
         </div>
     </main>
@@ -93,9 +116,9 @@
                 </div>
             </div>
 
-            <div id="quizUI" class="hidden h-full p-4 overflow-y-auto">
+            <div id="quizUI" class="hidden h-full p-4 overflow-y-auto custom-scroll">
                 <div class="bg-white rounded-3xl p-6 shadow-lg border border-pink-100 text-center mb-4">
-                    <h3 id="qQuestion" class="text-lg font-black leading-snug"></h3>
+                    <h3 id="qQuestion" class="text-lg font-black leading-snug word-keep-all"></h3>
                 </div>
                 <div id="qOptions" class="flex flex-col gap-3 pb-24"></div>
             </div>
@@ -120,7 +143,6 @@
     </div>
 
     <script>
-        // 🚀 화면 높이 실시간 보정
         function vh() { document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); }
         window.addEventListener('resize', vh); vh();
 
@@ -131,27 +153,45 @@
             async loadData() {
                 const cb = new Date().getTime();
                 const allData = [];
-                // 🚨 60개 벽을 넘기 위해 대소문자 변종까지 싹 다 뒤지는 불도저 엔진
-                for(let i=1; i<=30; i++) {
+                const label = document.getElementById('wordCountLabel');
+
+                // 🚨 1번부터 25번까지 차례대로 빠르고 안전하게 확인
+                for(let i=1; i<=25; i++) {
                     const num = String(i).padStart(2, '0');
-                    const files = [`./literacy_${num}.json`, `./literacy_${num}.JSON`, `./Literacy_${num}.json`];
+                    label.textContent = `스캔 중... [ ${num} / 25 ]`; // 화면에 실시간 진행 상황 표시
+                    label.classList.remove('animate-pulse');
                     
-                    for(const f of files) {
-                        try {
-                            const res = await fetch(`${f}?v=${cb}`);
-                            if(res.ok) {
-                                const json = await res.json();
-                                json.forEach(item => { if(!item.level) item.level = 'high'; });
-                                allData.push(...json);
-                                break; // 파일 하나 찾으면 다음 번호로
-                            }
-                        } catch(e) {}
+                    try {
+                        // 1.5초 동안 응답 없으면 강제 종료 (무한 로딩 절대 차단)
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+                        const res = await fetch(`./literacy_${num}.json?v=${cb}`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+
+                        if(res.ok) {
+                            const text = await res.text();
+                            try {
+                                const json = JSON.parse(text);
+                                if(Array.isArray(json)) {
+                                    json.forEach(item => { if(!item.level) item.level = 'high'; });
+                                    allData.push(...json);
+                                }
+                            } catch(e) { console.error(`[오류] ${num}번 파일 문법 에러`); }
+                        }
+                    } catch(e) {
+                        // 타임아웃 되거나 없는 파일은 무시하고 쿨하게 다음 파일로 넘어감
+                        console.log(`${num}번 파일 패스`);
                     }
                 }
+
                 this.fullDb = allData;
                 const topics = [...new Set(allData.map(d => d.topic))].filter(Boolean);
                 const select = document.getElementById('filterTopic');
                 topics.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; select.appendChild(o); });
+                
+                label.classList.remove('text-pink-500');
+                label.classList.add('text-slate-400');
                 this.applyFilters();
             },
 
@@ -159,11 +199,12 @@
                 const lvl = document.getElementById('filterLevel').value;
                 const top = document.getElementById('filterTopic').value;
                 this.filteredDb = this.fullDb.filter(d => (lvl==='all'||d.level===lvl) && (top==='all'||d.topic===top));
-                document.getElementById('wordCountLabel').textContent = `로드된 지문: ${this.filteredDb.length}개`;
+                document.getElementById('wordCountLabel').textContent = `로드 완료: 총 ${this.filteredDb.length}개`;
                 this.renderGrid();
             },
 
             loadHistory() { const h = localStorage.getItem('lit_hist'); if(h) this.history = JSON.parse(h); },
+            
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
                 let cleared = 0;
@@ -193,6 +234,7 @@
             },
 
             startTimer() { this.timer = 180; clearInterval(this.ti); this.ti = setInterval(() => { this.timer--; const m=Math.floor(this.timer/60), s=this.timer%60; document.getElementById('timerDisplay').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; if(this.timer<=0){ clearInterval(this.ti); this.exitNow(); } }, 1000); },
+            
             renderStudy() {
                 document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
                 document.getElementById('lLevelTag').textContent = this.sessionData.level === 'high' ? '고등' : '중학';
@@ -237,7 +279,7 @@
             te(e){const d=e.changedTouches[0].clientX-this.x; if(Math.abs(d)>50) this.navCard(d>0?-1:1);},
             confirmExit(){document.getElementById('exitModal').classList.remove('hidden');},
             exitNow(){clearInterval(this.ti); location.reload();},
-            resetHistory(){if(confirm("초기화할까요?")){localStorage.removeItem('lit_hist'); location.reload();}},
+            resetHistory(){if(confirm("기록을 삭제할까요?")){localStorage.removeItem('lit_hist'); location.reload();}},
             ri(){if(window.lucide)lucide.createIcons();}
         };
         window.onload = () => app.init();
