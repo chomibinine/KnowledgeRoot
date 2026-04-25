@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>공식의 뿌리 | MathRoot - Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #fefce8; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #fde047; border-radius: 10px; }
+        
+        #cardWrapper { position: relative; width: 100%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+        .flip-card { perspective: 1000px; width: 100%; height: calc(100vh - 280px); min-height: 520px; max-height: 680px; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        
+        .flip-card-front, .flip-card-back { 
+            position: absolute; width: 100%; height: 100%; 
+            -webkit-backface-visibility: hidden; backface-visibility: hidden; 
+            border-radius: 2.5rem; display: flex; flex-direction: column; 
+            box-shadow: 0 20px 40px -15px rgba(202, 138, 4, 0.15); border: 1px solid #fef08a; 
+            background: white; overflow: hidden;
+        }
+        
+        .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
+        .flip-card-back { transform: rotateY(180deg); padding: 1.5rem; overflow-y: auto; }
+
+        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
+        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in, opacity 0.3s ease-in; }
+        .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
+        @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        .btn-active:active { transform: scale(0.92); }
+        .math-formula { font-family: 'Times New Roman', serif; font-style: italic; font-weight: 700; color: #ca8a04; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+
+    <header class="bg-white border-b border-yellow-100 shrink-0 px-4 py-4 shadow-sm relative z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-yellow-500 p-2 rounded-xl shadow-lg"><i data-lucide="calculator" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">공식의 <span class="text-yellow-600">뿌리</span></h1>
+            </div>
+            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-yellow-600 transition-colors">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-6 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-yellow-100 shadow-sm">
+                <div>
+                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">0% 이해 완료</h2>
+                    <span id="wordCountLabel" class="text-[11px] font-bold text-yellow-600 uppercase tracking-widest mt-2 block">데이터 불러오는 중...</span>
+                </div>
+                <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">수학 영역</p>
+                    <select id="courseLevel" onchange="app.renderGrid()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">전체보기</option>
+                        <option value="algebra">대수학 (방정식/함수)</option>
+                        <option value="calculus">해석학 (미적분)</option>
+                        <option value="geometry">기하학 (도형/벡터)</option>
+                    </select>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">학습량</p>
+                    <select id="dailyAmount" onchange="app.renderGrid()" class="w-full bg-transparent font-black text-[15px] outline-none text-center">
+                        <option value="5" selected>5개씩 (심층)</option>
+                        <option value="10">10개씩 (빠르게)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+    </main>
+
+    <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden">
+        <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
+            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
+            <div class="text-center">
+                <span id="sessionDayLabel" class="text-[10px] font-black text-yellow-600 uppercase tracking-widest">DAY 01</span>
+                <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
+                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-yellow-700 transition-all">스토리 학습</button>
+                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400 transition-all">개념 테스트</button>
+                </div>
+            </div>
+            <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-yellow-600 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">5</span></div>
+        </div>
+
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+            
+            <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
+                <div id="cardWrapper" class="w-full slide-in">
+                    <div class="flip-card cursor-pointer" id="flashcard" role="button" tabindex="0" onclick="if(!app.isSwiping) this.classList.toggle('flipped')">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front text-center px-4">
+                                <span id="lCategoryTag" class="px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg text-[10px] font-black mb-8 uppercase tracking-widest border border-yellow-200">CATEGORY</span>
+                                <h2 id="lConcept" class="text-5xl font-black text-slate-900 leading-tight mb-6 tracking-tighter word-keep-all"></h2>
+                                <div class="bg-yellow-50 p-4 rounded-2xl w-full border border-yellow-100 shadow-inner">
+                                    <p id="lFormula" class="math-formula text-3xl tracking-widest"></p>
+                                </div>
+                                <p class="text-yellow-400 text-[10px] font-black uppercase tracking-[0.3em] absolute bottom-10 w-full left-0">터치하여 탄생 스토리 보기</p>
+                            </div>
+                            <div class="flip-card-back custom-scroll space-y-5">
+                                <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shrink-0 mx-1 mt-2 shadow-sm">
+                                    <p class="text-slate-400 font-black text-[11px] uppercase mb-2 flex items-center gap-1.5"><i data-lucide="help-circle" class="w-4 h-4 text-yellow-500"></i> 왜 만들었을까?</p>
+                                    <p id="lStory" class="text-slate-800 text-[15px] font-bold leading-relaxed word-keep-all"></p>
+                                </div>
+                                <div class="bg-yellow-50 p-5 rounded-[2rem] border border-yellow-200 mx-1">
+                                    <p class="text-yellow-800 font-black text-[11px] uppercase mb-2 flex items-center gap-1.5"><i data-lucide="key" class="w-4 h-4"></i> 핵심 개념 원리</p>
+                                    <p id="lPrinciple" class="text-yellow-900 text-[14px] font-medium leading-relaxed word-keep-all"></p>
+                                </div>
+                                <div class="px-3">
+                                    <p class="text-slate-400 font-black text-[10px] uppercase mb-1">💡 실전 활용 (어디에 쓰일까?)</p>
+                                    <p id="lApplication" class="text-slate-600 text-sm font-bold bg-slate-100 p-3 rounded-xl"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-4 w-full">
+                    <button onclick="app.navCard(-1)" class="h-16 w-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
+                    <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">다음 개념</button>
+                </div>
+            </div>
+
+            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-8 mb-6 mt-4 border border-yellow-200 text-left relative overflow-hidden shrink-0">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-yellow-500 transition-all duration-300"></div></div>
+                    <p class="text-slate-400 font-black text-[11px] uppercase tracking-widest mt-2 mb-4 text-center">다음 탄생 배경이 설명하는 개념은?</p>
+                    <div class="bg-yellow-50 p-5 rounded-2xl border border-yellow-100 mb-4">
+                        <p id="qStory" class="text-[15px] font-bold text-yellow-900 leading-relaxed word-keep-all"></p>
+                    </div>
+                    <button onclick="document.getElementById('qHint').classList.remove('hidden'); this.classList.add('hidden');" class="mx-auto flex items-center gap-1.5 text-[12px] font-black text-yellow-600 bg-white border border-yellow-200 px-6 py-3 rounded-full shadow-sm"><i data-lucide="lightbulb" class="w-4 h-4"></i> 수식 힌트 보기</button>
+                    <div id="qHint" class="hidden mt-4 text-center"><p id="qHintFormula" class="math-formula text-2xl font-bold text-slate-800"></p></div>
+                </div>
+                <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
+            </div>
+
+            <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
+                <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="check-circle" class="text-yellow-600 w-12 h-12"></i></div>
+                <h2 class="text-4xl font-black text-slate-900 mb-1">이해 완료!</h2>
+                <div class="flex items-baseline justify-center mb-8 gap-1"><span id="fCorrect" class="text-yellow-500 text-6xl font-black leading-none">0</span><span class="text-slate-300 text-3xl font-black">/</span><span id="fTotal" class="text-slate-300 text-3xl font-black">5</span></div>
+                <div id="wrongReview" class="w-full max-w-xs bg-rose-50 rounded-2xl p-6 border border-rose-100 mb-8 hidden overflow-y-auto max-h-48 text-left"><ul id="wrongList" class="space-y-3"></ul></div>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">목록으로 돌아가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
+            <h4 class="text-xl font-black text-slate-900 mb-2">학습을 종료할까요?</h4>
+            <div class="grid grid-cols-2 gap-3 mt-8">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-4 bg-slate-100 rounded-2xl font-black text-slate-500 text-sm">계속하기</button>
+                <button onclick="app.exitNow()" class="py-4 bg-rose-500 rounded-2xl font-black text-white text-sm">종료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            db: [], history: {}, sessionWords: [], sessionIdx: 0,
+            score: 0, wrongs: [], isAns: false, mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            
+            async init() {
+                this.loadHistory();
+                await this.loadData();
+                this.ri();
+            },
+            
+            async loadData() {
+                try {
+                    let allData = [];
+                    for(let i=1; i<=10; i++) {
+                        const fileName = `./math_${String(i).padStart(2, '0')}.json`;
+                        const res = await fetch(fileName);
+                        if(res.ok) {
+                            const data = await res.json();
+                            allData = allData.concat(data);
+                        } else break; 
+                    }
+                    
+                    this.db = allData;
+                    document.getElementById('wordCountLabel').textContent = `총 ${this.db.length}개의 수학 개념 활성화`;
+                    this.renderGrid();
+                } catch(e) { 
+                    console.error(e);
+                    document.getElementById('wordCountLabel').textContent = "데이터 로드 실패"; 
+                }
+            },
+            
+            loadHistory() { const h = localStorage.getItem('math_history'); if(h) this.history = JSON.parse(h); },
+            
+            renderGrid() {
+                const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
+                const lvl = document.getElementById('courseLevel').value;
+                const size = parseInt(document.getElementById('dailyAmount').value);
+                
+                let list = lvl === 'all' ? [...this.db] : this.db.filter(w => w.category === lvl);
+                if(!list.length) return;
+                
+                const days = Math.ceil(list.length / size);
+                let completed = 0;
+                
+                const frag = document.createDocumentFragment();
+                for(let i=0; i<days; i++){
+                    const key = `${lvl}_${size}_${i+1}`;
+                    const score = this.history[key];
+                    if(score) completed++;
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-[2.2rem] border border-yellow-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden";
+                    card.onclick = () => this.startSession(list.slice(i*size, (i+1)*size), i+1, key);
+                    card.innerHTML = `${score ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}<div class="w-10 h-10 mx-auto bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 font-black text-xs mb-3">${i+1}</div><h3 class="font-black text-slate-800 text-lg">Day ${i+1}</h3><p class="text-[10px] font-black text-yellow-600 mt-1 uppercase">${score || '시작'}</p>`;
+                    frag.appendChild(card);
+                }
+                grid.appendChild(frag);
+                
+                document.getElementById('totalProgressText').textContent = `${days > 0 ? Math.round((completed/days)*100) : 0}% 이해 완료`;
+                this.ri();
+            },
+            
+            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
+            te(e) { 
+                const dx = e.changedTouches[0].screenX - this.tx; 
+                const dy = e.changedTouches[0].screenY - this.ty;
+                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { 
+                    this.isSwiping = true;
+                    if(dx > 0) this.navCard(-1); else this.navCard(1); 
+                } 
+            },
+            
+            navCard(dir) {
+                const wrap = document.getElementById('cardWrapper');
+                if(dir === -1 && this.sessionIdx === 0) return;
+                
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                wrap.classList.remove('slide-in');
+                wrap.classList.add(outClass);
+                
+                setTimeout(() => {
+                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
+                    else if(dir === 1) {
+                        if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
+                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
+                    }
+                    wrap.classList.remove(outClass);
+                    void wrap.offsetWidth; 
+                    wrap.classList.add('slide-in');
+                }, 300);
+            },
+            
+            startSession(words, dayNum, key) {
+                this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
+                document.getElementById('sessionLayer').classList.remove('hidden');
+                document.getElementById('sessionDayLabel').textContent = `Day ${dayNum}`;
+                document.getElementById('sessionTotal').textContent = words.length;
+                this.renderStudy();
+            },
+            
+            getCatName(eng) {
+                const map = { 'algebra': '대수학', 'calculus': '해석학(미적분)', 'geometry': '기하학' };
+                return map[eng] || '수학 원리';
+            },
+
+            renderStudy() {
+                const w = this.sessionWords[this.sessionIdx];
+                const card = document.getElementById('flashcard');
+                card.classList.remove('flipped');
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                
+                document.getElementById('lCategoryTag').textContent = this.getCatName(w.category);
+                document.getElementById('lConcept').textContent = w.concept;
+                document.getElementById('lFormula').innerHTML = w.formula;
+                document.getElementById('lStory').textContent = w.story;
+                document.getElementById('lPrinciple').textContent = w.principle;
+                document.getElementById('lApplication').textContent = w.application;
+                
+                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "테스트 시작" : "다음 개념";
+                this.ri();
+            },
+            
+            switchMode(m) {
+                this.mode = m;
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById(`${m}UI`).classList.remove('hidden');
+                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.loadQuiz(); }
+                else if(m === 'study') { this.sessionIdx = 0; this.renderStudy(); }
+            },
+            
+            loadQuiz() {
+                if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
+                this.isAns = false; 
+                const w = this.sessionWords[this.sessionIdx];
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                document.getElementById('qBar').style.width = `${(this.sessionIdx/this.sessionWords.length)*100}%`;
+                
+                document.getElementById('qStory').textContent = w.story;
+                
+                const hintBtn = document.getElementById('qHint').previousElementSibling;
+                hintBtn.classList.remove('hidden');
+                document.getElementById('qHint').classList.add('hidden');
+                document.getElementById('qHintFormula').innerHTML = w.formula;
+                
+                const cont = document.getElementById('qOptions'); 
+                cont.innerHTML = '';
+                
+                const opts = [{t:w.concept, c:true}, ...this.db.filter(x=>x.concept!==w.concept).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.concept, c:false}))].sort(()=>Math.random()-0.5);
+                
+                const frag = document.createDocumentFragment();
+                opts.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "w-full text-center p-5 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 text-lg transition-all";
+                    b.textContent = o.t;
+                    b.onclick = () => { 
+                        if(this.isAns) return; 
+                        this.isAns = true; 
+                        
+                        if(o.c) {
+                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-yellow-500 bg-yellow-50 text-yellow-700 text-lg font-black"; 
+                            this.score++; 
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 600); 
+                        } else {
+                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-700 text-lg font-black animate-shake"; 
+                            this.wrongs.push(w);
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); 
+                        }
+                    };
+                    frag.appendChild(b);
+                });
+                cont.appendChild(frag);
+            },
+            
+            showResult() {
+                this.mode = 'result'; 
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('resultUI').classList.remove('hidden');
+                
+                document.getElementById('fCorrect').textContent = this.score;
+                document.getElementById('fTotal').textContent = this.sessionWords.length;
+                this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
+                localStorage.setItem('math_history', JSON.stringify(this.history));
+                
+                const list = document.getElementById('wrongList'); list.innerHTML = '';
+                if(this.wrongs.length > 0) {
+                    document.getElementById('wrongReview').classList.remove('hidden');
+                    list.innerHTML = this.wrongs.map(w => `<li class="bg-white p-4 rounded-xl border border-rose-100"><p class="font-black text-slate-800 text-lg mb-1">${w.concept}</p><p class="text-rose-500 text-[11px] font-bold mt-1">${w.principle}</p></li>`).join('');
+                }
+                this.ri();
+            },
+            
+            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
+            exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('math_history'); location.reload(); } },
+            ri() { if(window.lucide) window.lucide.createIcons(); }
+        };
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
