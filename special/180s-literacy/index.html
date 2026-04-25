@@ -45,6 +45,7 @@
         .animate-shake { animation: shake 0.3s ease-in-out; }
         .timer-critical { color: #e11d48; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
         .btn-active:active { transform: scale(0.92); }
         .content-text { font-size: 1.15rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; }
     </style>
@@ -71,7 +72,7 @@
             <div class="mb-4 flex items-center justify-between bg-white p-5 rounded-[2rem] border border-pink-100 shadow-sm">
                 <div>
                     <h2 id="totalProgressText" class="text-xl font-black text-slate-900 leading-none">학습 현황</h2>
-                    <span id="wordCountLabel" class="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-1 block">지문 스캔 중...</span>
+                    <span id="wordCountLabel" class="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-1 block">지문 스캔 준비 중...</span>
                 </div>
                 <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
             </div>
@@ -173,41 +174,35 @@
             async loadData() {
                 try {
                     const cacheBuster = new Date().getTime();
-                    const promises = [];
-                    let errorLog = []; // 🚨 에러 기록용 배열
+                    let allData = [];
+                    const statusLabel = document.getElementById('wordCountLabel');
                     
-                    for(let i=1; i<=25; i++) {
+                    // 🚨 트래픽 잼 방지: 하나씩 빠르고 안전하게 순차적으로 요청
+                    for(let i=1; i<=50; i++) {
+                        statusLabel.textContent = `지문 안전 스캔 중... (${i}/50)`;
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
-                        promises.push(
-                            fetch(`${fileName}?v=${cacheBuster}`)
-                            .then(async res => {
-                                if(!res.ok) {
-                                    // 1번~20번 파일 중에 404 에러가 나면 기록!
-                                    if(i <= 20) errorLog.push(`❌ ${fileName}: 파일을 아예 찾을 수 없음 (오타 또는 Vercel 서버 업로드 안됨)`);
-                                    return null;
-                                }
+                        
+                        try {
+                            const res = await fetch(`${fileName}?v=${cacheBuster}`);
+                            if(res.ok) {
                                 const text = await res.text();
                                 try {
                                     const json = JSON.parse(text);
                                     json.forEach(item => { if(!item.level) item.level = 'high'; });
-                                    return json;
+                                    allData = allData.concat(json);
                                 } catch(err) {
-                                    // JSON 형식이 깨졌으면 기록!
-                                    errorLog.push(`⚠️ ${fileName}: 내용 오류 (쉼표/대괄호 등 문법 깨짐)`);
-                                    return null;
+                                    console.error(`${fileName} 파싱 에러:`, err);
+                                    alert(`🚨 에러: ${fileName} 파일에 쉼표/대괄호 오타가 있습니다!`);
                                 }
-                            })
-                            .catch(err => null)
-                        );
-                    }
-
-                    const results = await Promise.all(promises);
-                    let allData = [];
-                    results.forEach(data => {
-                        if(data && Array.isArray(data)) {
-                            allData = allData.concat(data);
+                            } else {
+                                // 파일이 없으면(404) 멈추지 않고 그냥 넘어감
+                                continue;
+                            }
+                        } catch(err) {
+                            // 네트워크 에러가 나도 멈추지 않고 넘어감
+                            continue;
                         }
-                    });
+                    }
 
                     this.fullDb = allData;
                     
@@ -221,12 +216,6 @@
                     });
 
                     this.applyFilters();
-
-                    // 🚨 에러가 발견되면 화면에 바로 경고창 띄우기!
-                    if(errorLog.length > 0) {
-                        alert("🚨 [원인 분석 완료] 🚨\n\n13번 파일부터 안 불려오는 이유를 찾았습니다:\n\n" + errorLog.join("\n"));
-                    }
-
                 } catch(e) { console.error(e); }
             },
 
