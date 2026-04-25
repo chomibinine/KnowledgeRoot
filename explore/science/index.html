@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>과학 용어의 뿌리 | ScienceRoot - Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #ecfeff; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #67e8f9; border-radius: 10px; }
+        
+        #cardWrapper { position: relative; width: 100%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+        .flip-card { perspective: 1000px; width: 100%; height: calc(100vh - 280px); min-height: 520px; max-height: 680px; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        
+        .flip-card-front, .flip-card-back { 
+            position: absolute; width: 100%; height: 100%; 
+            -webkit-backface-visibility: hidden; backface-visibility: hidden; 
+            border-radius: 2.5rem; display: flex; flex-direction: column; 
+            box-shadow: 0 20px 40px -15px rgba(6, 182, 212, 0.15); border: 1px solid #cffafe; 
+            background: white; overflow: hidden;
+        }
+        
+        .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
+        .flip-card-back { transform: rotateY(180deg); padding: 1.5rem; overflow-y: auto; }
+
+        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
+        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
+        .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
+        @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        .btn-active:active { transform: scale(0.92); }
+        .root-box { background-color: #ecfeff; border: 1px solid #a5f3fc; padding: 0.5rem 1rem; border-radius: 1rem; color: #0891b2; font-weight: 800; font-size: 1.1rem; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+
+    <header class="bg-white border-b border-cyan-100 shrink-0 px-4 py-4 shadow-sm relative z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-cyan-500 p-2 rounded-xl shadow-lg"><i data-lucide="flask-conical" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">과학 용어의 <span class="text-cyan-500">뿌리</span></h1>
+            </div>
+            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-cyan-500 transition-colors">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-6 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-cyan-100 shadow-sm">
+                <div>
+                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">0% 스캔 완료</h2>
+                    <span id="wordCountLabel" class="text-[11px] font-bold text-cyan-600 uppercase tracking-widest mt-2 block">데이터 불러오는 중...</span>
+                </div>
+                <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
+                    <select id="courseLevel" onchange="app.renderGrid()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">통합과학</option>
+                        <option value="physics">물리학</option>
+                        <option value="chemistry">화학</option>
+                        <option value="biology">생명과학</option>
+                        <option value="earth">지구과학</option>
+                    </select>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">학습량</p>
+                    <select id="dailyAmount" onchange="app.renderGrid()" class="w-full bg-transparent font-black text-[15px] outline-none text-center">
+                        <option value="10" selected>10개씩</option>
+                        <option value="20">20개씩</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+    </main>
+
+    <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden">
+        <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
+            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
+            <div class="text-center">
+                <span id="sessionDayLabel" class="text-[10px] font-black text-cyan-600 uppercase tracking-widest">DAY 01</span>
+                <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
+                    <button id="mode-study" onclick="app.switchMode('study')" class="px-5 py-1.5 text-[11px] font-black rounded-md bg-white shadow-sm text-cyan-700 transition-all">연구</button>
+                    <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-5 py-1.5 text-[11px] font-black rounded-md text-slate-400 transition-all">검증</button>
+                </div>
+            </div>
+            <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-cyan-600 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">10</span></div>
+        </div>
+
+        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+            
+            <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
+                <div id="cardWrapper" class="w-full slide-in">
+                    <div class="flip-card cursor-pointer" id="flashcard" role="button" tabindex="0" onclick="if(!app.isSwiping) this.classList.toggle('flipped')">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front text-center px-4">
+                                <span id="lCategoryTag" class="px-3 py-1 bg-cyan-50 text-cyan-600 rounded-lg text-[10px] font-black mb-8 uppercase tracking-widest border border-cyan-100">CATEGORY</span>
+                                <h2 id="lTerm" class="text-5xl font-black text-slate-900 leading-tight mb-4 tracking-tighter word-keep-all"></h2>
+                                <p id="lOrigin" class="text-2xl font-bold text-slate-300 tracking-widest mb-6 italic"></p>
+                                <p class="text-cyan-300 text-[10px] font-black uppercase tracking-[0.3em] absolute bottom-10 w-full left-0">터치하여 해부하기</p>
+                            </div>
+                            <div class="flip-card-back custom-scroll space-y-6">
+                                <div class="bg-cyan-600 text-white p-5 rounded-[2rem] shadow-lg text-center mt-2 mx-2">
+                                    <p id="lDefinition" class="font-black text-xl leading-snug word-keep-all"></p>
+                                </div>
+                                <div class="px-2">
+                                    <p class="text-slate-400 font-black text-[11px] uppercase mb-3 flex items-center gap-1.5"><i data-lucide="scissors" class="w-4 h-4 text-cyan-500"></i> 어원 해부 (Etymology)</p>
+                                    <div id="lRoots" class="flex flex-wrap gap-2 justify-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"></div>
+                                </div>
+                                <div class="bg-cyan-50 p-5 rounded-[2rem] border border-cyan-100 mx-2 mb-4">
+                                    <p class="text-cyan-800 font-black text-[11px] uppercase mb-2 flex items-center gap-1.5"><i data-lucide="book-open" class="w-4 h-4"></i> 개념 풀이</p>
+                                    <p id="lExplanation" class="text-cyan-900 text-[14px] font-bold leading-relaxed word-keep-all"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex
