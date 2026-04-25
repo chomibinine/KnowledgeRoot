@@ -133,4 +133,259 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-8 flex
+                <div class="mt-8 flex gap-4 w-full">
+                    <button onclick="app.navCard(-1)" class="h-16 w-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
+                    <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">다음 용어</button>
+                </div>
+            </div>
+
+            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-10">
+                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-8 mb-6 mt-4 border border-cyan-100 text-left relative overflow-hidden shrink-0">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-cyan-500 transition-all duration-300"></div></div>
+                    <p class="text-slate-400 font-black text-[11px] uppercase tracking-widest mt-2 mb-4 text-center">다음 설명이 뜻하는 용어는?</p>
+                    <h3 id="qDefinition" class="text-[18px] font-black text-slate-800 leading-relaxed mb-6 word-keep-all text-center"></h3>
+                    <button onclick="document.getElementById('qHint').classList.remove('hidden'); this.classList.add('hidden');" class="mx-auto flex items-center gap-1.5 text-[12px] font-black text-cyan-600 bg-cyan-50 px-6 py-3 rounded-full"><i data-lucide="lightbulb" class="w-4 h-4"></i> 어원 힌트 보기</button>
+                    <div id="qHint" class="hidden mt-4 text-center">
+                        <div id="qHintRoots" class="flex flex-wrap gap-2 justify-center bg-cyan-50 p-4 rounded-2xl"></div>
+                    </div>
+                </div>
+                <div id="qOptions" class="w-full flex flex-col gap-3 shrink-0"></div>
+            </div>
+
+            <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
+                <div class="w-24 h-24 bg-cyan-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="microscope" class="text-cyan-600 w-12 h-12"></i></div>
+                <h2 class="text-4xl font-black text-slate-900 mb-1">분석 완료!</h2>
+                <div class="flex items-baseline justify-center mb-8 gap-1"><span id="fCorrect" class="text-cyan-600 text-6xl font-black leading-none">0</span><span class="text-slate-300 text-3xl font-black">/</span><span id="fTotal" class="text-slate-300 text-3xl font-black">10</span></div>
+                <div id="wrongReview" class="w-full max-w-xs bg-rose-50 rounded-2xl p-6 border border-rose-100 mb-8 hidden overflow-y-auto max-h-48 text-left"><ul id="wrongList" class="space-y-3"></ul></div>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl">목록으로 돌아가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs text-center shadow-2xl">
+            <h4 class="text-xl font-black text-slate-900 mb-2">학습을 종료할까요?</h4>
+            <div class="grid grid-cols-2 gap-3 mt-8">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-4 bg-slate-100 rounded-2xl font-black text-slate-500 text-sm">계속하기</button>
+                <button onclick="app.exitNow()" class="py-4 bg-rose-500 rounded-2xl font-black text-white text-sm">종료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            db: [], history: {}, sessionWords: [], sessionIdx: 0,
+            score: 0, wrongs: [], isAns: false, mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
+            
+            async init() {
+                this.loadHistory();
+                await this.loadData();
+                this.ri();
+            },
+            
+            async loadData() {
+                try {
+                    let allData = [];
+                    for(let i=1; i<=10; i++) {
+                        const fileName = `./science_${String(i).padStart(2, '0')}.json`;
+                        const res = await fetch(fileName);
+                        if(res.ok) {
+                            const data = await res.json();
+                            allData = allData.concat(data);
+                        } else break; 
+                    }
+                    
+                    if(allData.length === 0) {
+                        // 더미 데이터 (JSON 파일이 없을 경우 기본 출력)
+                        allData = [
+                            { 
+                                id: 1, category: "biology", term: "미토콘드리아", origin: "Mitochondria", definition: "세포 호흡을 통해 에너지를 생산하는 세포 소기관", 
+                                roots: [{ text: "mitos", mean: "실 (Thread)" }, { text: "chondrion", mean: "과립, 알갱이 (Granule)" }], 
+                                explanation: "초기 현미경으로 관찰했을 때 실처럼 길쭉하거나 알갱이처럼 생겼다고 하여 붙여진 이름입니다. 세포 내에서 에너지를 만드는 '발전소' 역할을 합니다." 
+                            },
+                            { 
+                                id: 2, category: "physics", term: "엔트로피", origin: "Entropy", definition: "열역학 제2법칙에 의해 증가하는, 무질서도의 척도", 
+                                roots: [{ text: "en-", mean: "안으로 (in)" }, { text: "trope", mean: "변화, 돌아서다 (turn)" }], 
+                                explanation: "물질의 상태가 내부에서 무질서한 방향으로 변해가는 성질을 나타냅니다. 깨진 유리가 다시 붙지 않는 것처럼 자연은 무질서도가 증가하는 방향으로 흐릅니다." 
+                            }
+                        ];
+                    }
+                    
+                    this.db = allData;
+                    document.getElementById('wordCountLabel').textContent = `총 ${this.db.length}개의 용어 활성화됨`;
+                    this.renderGrid();
+                } catch(e) { 
+                    console.error(e);
+                    document.getElementById('wordCountLabel').textContent = "데이터 로드 실패"; 
+                }
+            },
+            
+            loadHistory() { const h = localStorage.getItem('science_history'); if(h) this.history = JSON.parse(h); },
+            
+            renderGrid() {
+                const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
+                const lvl = document.getElementById('courseLevel').value;
+                const size = parseInt(document.getElementById('dailyAmount').value);
+                
+                let list = lvl === 'all' ? [...this.db] : this.db.filter(w => w.category === lvl);
+                if(!list.length) return;
+                
+                const days = Math.ceil(list.length / size);
+                let completed = 0;
+                
+                const frag = document.createDocumentFragment();
+                for(let i=0; i<days; i++){
+                    const key = `${lvl}_${size}_${i+1}`;
+                    const score = this.history[key];
+                    if(score) completed++;
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-[2.2rem] border border-cyan-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden";
+                    card.onclick = () => this.startSession(list.slice(i*size, (i+1)*size), i+1, key);
+                    card.innerHTML = `${score ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}<div class="w-10 h-10 mx-auto bg-cyan-50 rounded-xl flex items-center justify-center text-cyan-600 font-black text-xs mb-3">${i+1}</div><h3 class="font-black text-slate-800 text-lg">Day ${i+1}</h3><p class="text-[10px] font-black text-cyan-600 mt-1 uppercase">${score || '시작'}</p>`;
+                    frag.appendChild(card);
+                }
+                grid.appendChild(frag);
+                
+                document.getElementById('totalProgressText').textContent = `${days > 0 ? Math.round((completed/days)*100) : 0}% 분석 완료`;
+                this.ri();
+            },
+            
+            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
+            te(e) { 
+                const dx = e.changedTouches[0].screenX - this.tx; 
+                const dy = e.changedTouches[0].screenY - this.ty;
+                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { 
+                    this.isSwiping = true;
+                    if(dx > 0) this.navCard(-1); else this.navCard(1); 
+                } 
+            },
+            
+            navCard(dir) {
+                const wrap = document.getElementById('cardWrapper');
+                if(dir === -1 && this.sessionIdx === 0) return;
+                
+                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
+                wrap.classList.remove('slide-in');
+                wrap.classList.add(outClass);
+                
+                setTimeout(() => {
+                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
+                    else if(dir === 1) {
+                        if(this.sessionIdx < this.sessionWords.length - 1) { this.sessionIdx++; this.renderStudy(); }
+                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
+                    }
+                    wrap.classList.remove(outClass);
+                    void wrap.offsetWidth; 
+                    wrap.classList.add('slide-in');
+                }, 300);
+            },
+            
+            startSession(words, dayNum, key) {
+                this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
+                document.getElementById('sessionLayer').classList.remove('hidden');
+                document.getElementById('sessionDayLabel').textContent = `Day ${dayNum}`;
+                document.getElementById('sessionTotal').textContent = words.length;
+                this.renderStudy();
+            },
+            
+            getCatName(eng) {
+                const map = { 'physics': '물리학', 'chemistry': '화학', 'biology': '생명과학', 'earth': '지구과학' };
+                return map[eng] || '통합과학';
+            },
+
+            renderStudy() {
+                const w = this.sessionWords[this.sessionIdx];
+                const card = document.getElementById('flashcard');
+                card.classList.remove('flipped');
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                
+                document.getElementById('lCategoryTag').textContent = this.getCatName(w.category);
+                document.getElementById('lTerm').textContent = w.term;
+                document.getElementById('lOrigin').textContent = w.origin;
+                document.getElementById('lDefinition').textContent = w.definition;
+                document.getElementById('lExplanation').textContent = w.explanation;
+                
+                document.getElementById('lRoots').innerHTML = w.roots.map(r => `<div class="root-box text-center"><span class="block text-slate-800 text-sm mb-1">${r.text}</span><span class="text-[11px] text-cyan-600 opacity-80">${r.mean}</span></div>`).join('<span class="text-slate-300 font-bold self-center">+</span>');
+                
+                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "검증 시작" : "다음 용어";
+                this.ri();
+            },
+            
+            switchMode(m) {
+                this.mode = m;
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById(`${m}UI`).classList.remove('hidden');
+                if(m === 'quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.loadQuiz(); }
+                else if(m === 'study') { this.sessionIdx = 0; this.renderStudy(); }
+            },
+            
+            loadQuiz() {
+                if(this.sessionIdx >= this.sessionWords.length) return this.showResult();
+                this.isAns = false; 
+                const w = this.sessionWords[this.sessionIdx];
+                document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                document.getElementById('qBar').style.width = `${(this.sessionIdx/this.sessionWords.length)*100}%`;
+                
+                document.getElementById('qDefinition').textContent = w.definition;
+                
+                const hintBtn = document.getElementById('qHint').previousElementSibling;
+                hintBtn.classList.remove('hidden');
+                document.getElementById('qHint').classList.add('hidden');
+                document.getElementById('qHintRoots').innerHTML = w.roots.map(r => `<div class="text-center"><span class="block text-cyan-800 text-[13px] font-black">${r.text}</span><span class="text-[10px] text-cyan-600">${r.mean}</span></div>`).join('<span class="text-cyan-300 font-bold self-center px-1">+</span>');
+                
+                const cont = document.getElementById('qOptions'); 
+                cont.innerHTML = '';
+                
+                const opts = [{t:w.term, c:true}, ...this.db.filter(x=>x.term!==w.term).sort(()=>Math.random()-0.5).slice(0,3).map(x=>({t:x.term, c:false}))].sort(()=>Math.random()-0.5);
+                
+                const frag = document.createDocumentFragment();
+                opts.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "w-full text-center p-5 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 text-[17px] transition-all";
+                    b.textContent = o.t;
+                    b.onclick = () => { 
+                        if(this.isAns) return; 
+                        this.isAns = true; 
+                        
+                        if(o.c) {
+                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-cyan-500 bg-cyan-50 text-cyan-700 text-[17px] font-black"; 
+                            this.score++; 
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 600); 
+                        } else {
+                            b.className = "w-full text-center p-5 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-700 text-[17px] font-black animate-shake"; 
+                            this.wrongs.push(w);
+                            setTimeout(() => { this.sessionIdx++; this.loadQuiz(); }, 1000); 
+                        }
+                    };
+                    frag.appendChild(b);
+                });
+                cont.appendChild(frag);
+            },
+            
+            showResult() {
+                this.mode = 'result'; 
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('resultUI').classList.remove('hidden');
+                
+                document.getElementById('fCorrect').textContent = this.score;
+                document.getElementById('fTotal').textContent = this.sessionWords.length;
+                this.history[this.currentKey] = `${this.score}/${this.sessionWords.length}`;
+                localStorage.setItem('science_history', JSON.stringify(this.history));
+                
+                const list = document.getElementById('wrongList'); list.innerHTML = '';
+                if(this.wrongs.length > 0) {
+                    document.getElementById('wrongReview').classList.remove('hidden');
+                    list.innerHTML = this.wrongs.map(w => `<li class="bg-white p-4 rounded-xl border border-rose-100"><p class="font-black text-slate-800 text-lg mb-1">${w.term} <span class="text-sm font-medium text-slate-400">(${w.origin})</span></p><p class="text-rose-500 text-[11px] font-bold mt-1">${w.definition}</p></li>`).join('');
+                }
+                this.ri();
+            },
+            
+            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
+            exitNow() { document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
+            resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('science_history'); location.reload(); } },
+            ri() { if(window.lucide) window.lucide.createIcons(); }
+        };
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
