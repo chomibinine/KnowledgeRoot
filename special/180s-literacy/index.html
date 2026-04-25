@@ -3,375 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>180초 문해력 Pro | LiteracyRoot - Knowledge Root</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>문해력 Pro v2.0 | Knowledge Root</title> <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <script>
-        function setScreenSize() {
-            let vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        }
-        setScreenSize();
-        window.addEventListener('resize', setScreenSize);
-        window.addEventListener('orientationchange', setScreenSize);
-    </script>
-
     <style>
+        /* 🚨 안드로이드/iOS 하단바 버그를 잡는 특수 CSS */
+        :root { --vh: 1vh; }
+        html, body { height: 100%; height: -webkit-fill-available; margin: 0; padding: 0; overflow: hidden; }
+        
         body { 
             font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; 
-            -webkit-tap-highlight-color: transparent; 
-            height: 100vh; height: calc(var(--vh, 1vh) * 100);
-            overflow: hidden; display: flex; flex-direction: column;
+            height: calc(var(--vh, 1vh) * 100);
+            display: flex; flex-direction: column; position: fixed; inset: 0;
         }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
-        
-        #cardWrapper { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
-        
+
+        /* 🚨 버튼이 잘리지 않게 바닥에 띄워서 고정하는 핵심 디자인 */
+        .bottom-action-area {
+            position: fixed; bottom: 20px; left: 16px; right: 16px; 
+            z-index: 1000; display: flex; gap: 12px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .literacy-card-container {
+            position: absolute; top: 70px; left: 16px; right: 16px; 
+            bottom: 100px; /* 버튼 영역 확보 */
+            display: flex; flex-direction: column;
+        }
+
         .literacy-card { 
-            width: 100%; flex: 1; min-height: 0;
-            border-radius: 2rem; display: flex; flex-direction: column; 
-            box-shadow: 0 20px 40px -15px rgba(219, 39, 119, 0.15); border: 1px solid #fce7f3; 
-            background: white; overflow: hidden; padding: 1.5rem;
+            flex: 1; border-radius: 2rem; background: white;
+            box-shadow: 0 15px 35px -10px rgba(219, 39, 119, 0.2);
+            border: 1px solid #fce7f3; overflow: hidden; display: flex; flex-direction: column; padding: 1.5rem;
         }
 
-        .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
-        .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
-        .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
-        @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-        .animate-shake { animation: shake 0.3s ease-in-out; }
-        .timer-critical { color: #e11d48; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
+        .content-text { font-size: 1.1rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; overflow-y: auto; }
+        #cardWrapper { height: 100%; display: flex; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .slide-out-left { transform: translateX(-120%) rotate(-5deg); opacity: 0; }
+        .slide-out-right { transform: translateX(120%) rotate(5deg); opacity: 0; }
         .btn-active:active { transform: scale(0.92); }
-        .content-text { font-size: 1.15rem; line-height: 1.7; word-break: keep-all; font-weight: 500; color: #1f2937; }
     </style>
 </head>
-<body class="text-slate-800 select-none">
+<body class="text-slate-800">
 
-    <header class="bg-white border-b border-pink-100 shrink-0 px-4 py-3 shadow-sm relative z-40">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-pink-500 p-2 rounded-xl shadow-sm"><i data-lucide="zap" class="text-white w-4 h-4"></i></div>
-                <h1 class="text-lg font-black text-slate-900 tracking-tight">180초 <span class="text-pink-500">문해력</span></h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <div id="timerDisplay" class="font-black text-base text-slate-400 font-mono">03:00</div>
-                <button onclick="window.location.href='../../index.html'" class="p-2 rounded-xl bg-slate-50 text-slate-400 btn-active hover:text-pink-500 transition-colors">
-                    <i data-lucide="home" class="w-5 h-5"></i>
-                </button>
-            </div>
+    <header class="bg-white border-b border-pink-100 px-4 py-3 shrink-0 flex justify-between items-center z-50">
+        <div class="flex items-center gap-2">
+            <div class="bg-pink-500 p-1.5 rounded-lg"><i data-lucide="zap" class="text-white w-4 h-4"></i></div>
+            <h1 class="text-base font-black tracking-tighter">문해력 <span class="text-pink-500">v2.0</span></h1>
         </div>
+        <div id="timerDisplay" class="font-mono font-black text-pink-500 text-sm">03:00</div>
+        <button onclick="location.href='../../index.html'" class="p-2 bg-slate-50 rounded-lg text-slate-400"><i data-lucide="home" class="w-4 h-4"></i></button>
     </header>
 
-    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-12 custom-scroll">
-        <div class="max-w-4xl mx-auto">
-            <div class="mb-4 flex items-center justify-between bg-white p-5 rounded-[2rem] border border-pink-100 shadow-sm">
-                <div>
-                    <h2 id="totalProgressText" class="text-xl font-black text-slate-900 leading-none">학습 현황</h2>
-                    <span id="wordCountLabel" class="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-1 block">데이터 로드 중...</span>
-                </div>
-                <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+    <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24 custom-scroll">
+        <div class="max-w-md mx-auto">
+            <div class="bg-white p-5 rounded-3xl border border-pink-100 shadow-sm mb-4">
+                <h2 id="totalProgressText" class="text-xl font-black mb-1">분석률 0%</h2>
+                <p id="wordCountLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">파일 스캔 중...</p>
             </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">난이도</p>
-                    <select id="filterLevel" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[13px] outline-none text-center text-slate-700">
-                        <option value="all">전체 난이도</option>
-                        <option value="middle">중학 수준</option>
-                        <option value="high">고등 수준</option>
-                    </select>
-                </div>
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
-                    <select id="filterTopic" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[13px] outline-none text-center text-slate-700">
-                        <option value="all">모든 분야</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-6"></div>
+            <div id="daysGrid" class="grid grid-cols-2 gap-3 pb-10"></div>
         </div>
     </main>
 
-    <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden" style="height: calc(var(--vh, 1vh) * 100);">
-        <div class="bg-white border-b border-slate-100 px-4 py-3 flex justify-between items-center shrink-0">
-            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="chevron-left" class="w-7 h-7"></i></button>
-            <div class="text-center">
-                <span id="sessionDayLabel" class="text-[10px] font-black text-pink-600 uppercase tracking-widest">CHAPTER</span>
-                <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
-                    <div class="px-3 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-pink-700" id="modeIndicator">독해 중</div>
-                </div>
-            </div>
-            <div class="text-[11px] font-black min-w-[50px] text-right"><span id="sessionIdx" class="text-pink-600 text-lg">1</span><span class="text-slate-200 mx-1">/</span><span id="sessionTotal" class="text-slate-400">5</span></div>
+    <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col">
+        <div class="px-4 py-3 border-b flex justify-between items-center shrink-0 bg-white">
+            <button onclick="app.confirmExit()" class="p-2"><i data-lucide="x" class="w-6 h-6 text-slate-300"></i></button>
+            <span id="sessionDayLabel" class="text-[10px] font-black text-pink-500 uppercase tracking-widest">CHAPTER</span>
+            <div class="text-[11px] font-black"><span id="sessionIdx" class="text-pink-500">1</span>/5</div>
         </div>
 
-        <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col px-4 pt-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
+        <div id="sessionContent" class="flex-1 bg-slate-50 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
             
-            <div id="studyUI" class="flex-1 flex flex-col w-full max-w-md mx-auto min-h-0 h-full">
-                <div id="cardWrapper" class="w-full flex-1 flex flex-col slide-in min-h-0 mb-4">
-                    <div class="literacy-card relative">
-                        <div class="flex items-center gap-2 mb-4 shrink-0">
-                            <span id="lLevelTag" class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-md text-[9px] font-black uppercase border border-slate-200">LEVEL</span>
-                            <span id="lTopicTag" class="px-2.5 py-1 bg-pink-50 text-pink-600 rounded-md text-[9px] font-black uppercase border border-pink-100">TOPIC</span>
-                        </div>
-                        <p id="lContent" class="content-text flex-1 overflow-y-auto custom-scroll pb-10"></p>
-                        <div class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-2">
-                            <p class="text-pink-200 text-[9px] font-black uppercase tracking-[0.2em] bg-white px-2">스와이프로 카드 넘기기</p>
+            <div id="studyUI" class="h-full w-full">
+                <div class="literacy-card-container">
+                    <div id="cardWrapper">
+                        <div class="literacy-card">
+                            <div class="flex gap-2 mb-3 shrink-0">
+                                <span id="lLevelTag" class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black">고등</span>
+                                <span id="lTopicTag" class="px-2 py-0.5 bg-pink-50 text-pink-500 rounded text-[9px] font-black">경제</span>
+                            </div>
+                            <p id="lContent" class="content-text custom-scroll"></p>
                         </div>
                     </div>
                 </div>
-                
-                <div class="shrink-0 flex gap-3 w-full pb-6 mb-[env(safe-area-inset-bottom)]">
-                    <button onclick="app.navCard(-1)" class="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
-                    <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black shadow-lg text-[15px]">다음 카드</button>
+
+                <div class="bottom-action-area">
+                    <button onclick="app.navCard(-1)" class="w-16 h-16 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-300 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
+                    <button id="nextBtn" onclick="app.navCard(1)" class="flex-1 h-16 bg-slate-900 text-white rounded-2xl font-black shadow-xl btn-active text-lg">다음 카드</button>
                 </div>
             </div>
 
-            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto pb-12 custom-scroll">
-                <div class="w-full bg-white rounded-[2rem] shadow-lg p-6 mb-5 mt-2 border border-pink-100 text-center relative overflow-hidden shrink-0">
-                    <p class="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-3">핵심 내용 확인</p>
-                    <h3 id="qQuestion" class="text-lg font-black text-slate-800 leading-snug word-keep-all"></h3>
+            <div id="quizUI" class="hidden h-full p-4 overflow-y-auto">
+                <div class="bg-white rounded-3xl p-6 shadow-lg border border-pink-100 text-center mb-4">
+                    <h3 id="qQuestion" class="text-lg font-black leading-snug"></h3>
                 </div>
-                <div id="qOptions" class="w-full flex flex-col gap-2.5 shrink-0 pb-10 mb-[env(safe-area-inset-bottom)]"></div>
+                <div id="qOptions" class="flex flex-col gap-3 pb-24"></div>
             </div>
 
-            <div id="resultUI" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white z-10">
-                <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mb-5 shadow-inner"><i data-lucide="check-circle" class="text-pink-600 w-10 h-10"></i></div>
-                <h2 class="text-3xl font-black text-slate-900 mb-1">지문 돌파!</h2>
-                <div id="resultTime" class="text-pink-500 font-black text-lg mb-8 uppercase tracking-widest">Time: 00:00</div>
-                <button onclick="app.exitNow()" class="w-full max-w-xs h-14 bg-slate-900 text-white rounded-2xl font-black shadow-lg">목록으로 돌아가기</button>
+            <div id="resultUI" class="hidden inset-0 absolute bg-white flex flex-col items-center justify-center text-center p-8 z-50">
+                <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mb-4"><i data-lucide="check" class="text-pink-500 w-10 h-10"></i></div>
+                <h2 class="text-3xl font-black mb-1">지문 돌파!</h2>
+                <p id="resultTime" class="text-pink-500 font-bold mb-8">00:00</p>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-2xl font-black shadow-xl">완료</button>
             </div>
         </div>
     </div>
 
-    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-5">
+    <div id="exitModal" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white rounded-[2rem] p-6 w-full max-w-[280px] text-center shadow-2xl">
-            <h4 class="text-lg font-black text-slate-900 mb-2">중단할까요?</h4>
-            <div class="grid grid-cols-2 gap-3 mt-6">
-                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-3 bg-slate-100 rounded-xl font-black text-slate-500 text-[13px]">계속하기</button>
-                <button onclick="app.exitNow()" class="py-3 bg-rose-500 rounded-xl font-black text-white text-[13px]">중단</button>
+            <h4 class="text-lg font-black mb-6">학습을 중단할까요?</h4>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="document.getElementById('exitModal').classList.add('hidden')" class="py-3 bg-slate-100 rounded-xl font-bold text-slate-400">계속</button>
+                <button onclick="app.exitNow()" class="py-3 bg-rose-500 rounded-xl font-bold text-white">중단</button>
             </div>
         </div>
     </div>
 
     <script>
+        // 🚀 화면 높이 실시간 보정
+        function vh() { document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); }
+        window.addEventListener('resize', vh); vh();
+
         const app = {
-            fullDb: [], filteredDb: [], history: {}, sessionCards: [], sessionIdx: 0,
-            mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
-            timer: 180, timerInt: null, startTime: 0, isAns: false,
-            
-            async init() {
-                this.loadHistory();
-                await this.loadData();
-                this.ri();
-            },
+            fullDb: [], filteredDb: [], history: {}, sessionIdx: 0, mode: 'study',
+            async init() { this.loadHistory(); await this.loadData(); if(window.lucide) lucide.createIcons(); },
             
             async loadData() {
-                try {
-                    const cacheBuster = new Date().getTime();
-                    const promises = [];
+                const cb = new Date().getTime();
+                const allData = [];
+                // 🚨 60개 벽을 넘기 위해 대소문자 변종까지 싹 다 뒤지는 불도저 엔진
+                for(let i=1; i<=30; i++) {
+                    const num = String(i).padStart(2, '0');
+                    const files = [`./literacy_${num}.json`, `./literacy_${num}.JSON`, `./Literacy_${num}.json`];
                     
-                    // 에러 팝업 없이 가장 빠르고 조용하게 50개 동시 요청 (결손 파일은 자동 패스)
-                    for(let i=1; i<=50; i++) {
-                        const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
-                        promises.push(
-                            fetch(`${fileName}?v=${cacheBuster}`)
-                            .then(res => res.ok ? res.json() : null)
-                            .catch(() => null)
-                        );
+                    for(const f of files) {
+                        try {
+                            const res = await fetch(`${f}?v=${cb}`);
+                            if(res.ok) {
+                                const json = await res.json();
+                                json.forEach(item => { if(!item.level) item.level = 'high'; });
+                                allData.push(...json);
+                                break; // 파일 하나 찾으면 다음 번호로
+                            }
+                        } catch(e) {}
                     }
-
-                    const results = await Promise.all(promises);
-                    let allData = [];
-                    results.forEach(json => {
-                        if(json && Array.isArray(json)) {
-                            json.forEach(item => { if(!item.level) item.level = 'high'; });
-                            allData = allData.concat(json);
-                        }
-                    });
-
-                    this.fullDb = allData;
-                    
-                    const uniqueTopics = [...new Set(this.fullDb.map(item => item.topic))].filter(Boolean);
-                    const topicSelect = document.getElementById('filterTopic');
-                    topicSelect.innerHTML = '<option value="all">모든 분야</option>'; 
-                    uniqueTopics.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = t; opt.textContent = t;
-                        topicSelect.appendChild(opt);
-                    });
-
-                    this.applyFilters();
-                } catch(e) { console.error(e); }
+                }
+                this.fullDb = allData;
+                const topics = [...new Set(allData.map(d => d.topic))].filter(Boolean);
+                const select = document.getElementById('filterTopic');
+                topics.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; select.appendChild(o); });
+                this.applyFilters();
             },
 
             applyFilters() {
                 const lvl = document.getElementById('filterLevel').value;
                 const top = document.getElementById('filterTopic').value;
-
-                this.filteredDb = this.fullDb.filter(item => {
-                    const matchLvl = (lvl === 'all' || item.level === lvl);
-                    const matchTop = (top === 'all' || item.topic === top);
-                    return matchLvl && matchTop;
-                });
-
-                document.getElementById('wordCountLabel').textContent = `검색된 지문: 총 ${this.filteredDb.length}개`;
+                this.filteredDb = this.fullDb.filter(d => (lvl==='all'||d.level===lvl) && (top==='all'||d.topic===top));
+                document.getElementById('wordCountLabel').textContent = `로드된 지문: ${this.filteredDb.length}개`;
                 this.renderGrid();
             },
-            
-            loadHistory() { const h = localStorage.getItem('literacy_history'); if(h) this.history = JSON.parse(h); },
-            
+
+            loadHistory() { const h = localStorage.getItem('lit_hist'); if(h) this.history = JSON.parse(h); },
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
-                const frag = document.createDocumentFragment();
-                let completedCount = 0;
-
+                let cleared = 0;
                 this.filteredDb.forEach((item, i) => {
                     const key = `lit_${item.title}`;
-                    const done = this.history[key];
-                    if(done) completedCount++;
-
+                    const done = this.history[key]; if(done) cleared++;
                     const card = document.createElement('div');
-                    card.className = "bg-white p-4 rounded-[2rem] border border-pink-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[130px]";
+                    card.className = "bg-white p-4 rounded-3xl border border-pink-50 shadow-sm relative text-center btn-active min-h-[110px] flex flex-col justify-center";
                     card.onclick = () => this.startSession(item, i+1, key);
-                    
-                    const lvlLabel = item.level === 'middle' ? 'M' : 'H';
-
-                    card.innerHTML = `
-                        ${done ? '<div class="absolute top-2.5 right-2.5 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}
-                        <div class="absolute top-2.5 left-2.5 bg-slate-100 text-slate-400 font-black text-[9px] px-2 py-0.5 rounded-md">${lvlLabel}</div>
-                        <div class="text-[9px] font-black text-pink-500 bg-pink-50 px-2 py-1 rounded-md self-center mb-1.5 mt-1">${item.topic}</div>
-                        <h3 class="font-bold text-slate-800 text-[13px] mb-1 leading-snug word-keep-all">${item.title}</h3>
-                        <p class="text-[8px] font-black text-pink-400 uppercase tracking-widest mt-auto">${done ? 'Cleared' : 'Ready'}</p>
-                    `;
-                    frag.appendChild(card);
+                    card.innerHTML = `${done?'<div class="absolute top-2 right-2 bg-emerald-500 text-white p-0.5 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>':''}
+                        <span class="text-[8px] font-black text-pink-300 mb-1 uppercase">${item.topic}</span>
+                        <h3 class="text-[13px] font-bold leading-tight word-keep-all">${item.title}</h3>`;
+                    grid.appendChild(card);
                 });
-                grid.appendChild(frag);
-                
-                const pct = this.filteredDb.length > 0 ? Math.round((completedCount / this.filteredDb.length) * 100) : 0;
-                document.getElementById('totalProgressText').textContent = `분석률 ${pct}%`;
-                this.ri();
+                document.getElementById('totalProgressText').textContent = `분석률 ${Math.round((cleared/this.filteredDb.length)*100 || 0)}%`;
+                if(window.lucide) lucide.createIcons();
             },
 
             startSession(data, num, key) {
-                this.sessionCards = data.cards; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
-                this.sessionData = data;
-                
-                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                this.sessionData = data; this.sessionIdx = 0; this.currentKey = key;
+                ['studyUI','quizUI','resultUI'].forEach(u=>document.getElementById(u).classList.add('hidden'));
                 document.getElementById('studyUI').classList.remove('hidden');
-
                 document.getElementById('sessionLayer').classList.remove('hidden');
                 document.getElementById('sessionDayLabel').textContent = `CHAPTER ${num}`;
                 document.getElementById('sessionTotal').textContent = data.cards.length;
-                document.getElementById('modeIndicator').textContent = "독해 중";
-                
-                setScreenSize();
-                this.startTimer();
-                this.renderStudy();
+                this.startTimer(); this.renderStudy();
             },
 
-            startTimer() {
-                this.timer = 180; this.startTime = Date.now();
-                clearInterval(this.timerInt);
-                this.timerInt = setInterval(() => {
-                    this.timer--;
-                    const m = Math.floor(this.timer / 60);
-                    const s = this.timer % 60;
-                    const display = document.getElementById('timerDisplay');
-                    display.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                    if(this.timer <= 30) display.classList.add('timer-critical');
-                    else display.classList.remove('timer-critical');
-                    if(this.timer <= 0) { clearInterval(this.timerInt); alert("시간 초과! 다시 시도하세요."); this.exitNow(); }
-                }, 1000);
-            },
-
+            startTimer() { this.timer = 180; clearInterval(this.ti); this.ti = setInterval(() => { this.timer--; const m=Math.floor(this.timer/60), s=this.timer%60; document.getElementById('timerDisplay').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; if(this.timer<=0){ clearInterval(this.ti); this.exitNow(); } }, 1000); },
             renderStudy() {
-                const c = this.sessionCards[this.sessionIdx];
                 document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
-                document.getElementById('lLevelTag').textContent = this.sessionData.level === 'middle' ? '중학' : '고등';
+                document.getElementById('lLevelTag').textContent = this.sessionData.level === 'high' ? '고등' : '중학';
                 document.getElementById('lTopicTag').textContent = this.sessionData.topic;
-                document.getElementById('lContent').textContent = c;
-                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionCards.length - 1 ? "이해 확인" : "다음 카드";
-                this.ri();
+                document.getElementById('lContent').textContent = this.sessionData.cards[this.sessionIdx];
+                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionData.cards.length - 1 ? "이해 확인" : "다음 카드";
             },
 
             navCard(dir) {
-                const wrap = document.getElementById('cardWrapper');
+                const el = document.getElementById('cardWrapper');
                 if(dir === -1 && this.sessionIdx === 0) return;
-                const outClass = dir === 1 ? 'slide-out-left' : 'slide-out-right';
-                wrap.classList.remove('slide-in'); wrap.classList.add(outClass);
+                el.classList.add(dir===1 ? 'slide-out-left' : 'slide-out-right');
                 setTimeout(() => {
-                    if(dir === -1) { this.sessionIdx--; this.renderStudy(); }
-                    else {
-                        if(this.sessionIdx < this.sessionCards.length - 1) { this.sessionIdx++; this.renderStudy(); }
-                        else { wrap.classList.remove(outClass); this.switchMode('quiz'); return; }
-                    }
-                    wrap.classList.remove(outClass); void wrap.offsetWidth; wrap.classList.add('slide-in');
-                }, 300);
+                    if(dir===1 && this.sessionIdx === this.sessionData.cards.length-1) { this.switchQuiz(); }
+                    else { this.sessionIdx += dir; this.renderStudy(); }
+                    el.className = ''; void el.offsetWidth; el.classList.add('slide-in');
+                }, 200);
             },
 
-            switchMode(m) {
-                this.mode = m;
-                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
-                document.getElementById(`${m}UI`).classList.remove('hidden');
-                
-                if(m === 'quiz') {
-                    document.getElementById('modeIndicator').textContent = "이해 확인";
-                    this.isAns = false; 
-                    const q = this.sessionData.quiz;
-                    document.getElementById('qQuestion').textContent = q.question;
-                    const cont = document.getElementById('qOptions'); cont.innerHTML = '';
-                    q.options.forEach(opt => {
-                        const b = document.createElement('button');
-                        b.className = "w-full text-left p-4 rounded-[1.2rem] border-2 border-slate-200 bg-white font-bold text-slate-700 text-[14px] transition-all";
-                        b.textContent = opt;
-                        b.onclick = () => {
-                            if (this.isAns) return; 
-                            if(opt === q.answer) { 
-                                this.isAns = true;
-                                b.classList.replace('border-slate-200','border-pink-500'); 
-                                b.classList.add('bg-pink-50'); 
-                                setTimeout(()=>this.showResult(), 600); 
-                            }
-                            else { 
-                                b.classList.add('animate-shake', 'border-rose-500', 'bg-rose-50'); 
-                            }
-                        };
-                        cont.appendChild(b);
-                    });
-                }
+            switchQuiz() {
+                this.mode = 'quiz'; document.getElementById('studyUI').classList.add('hidden');
+                document.getElementById('quizUI').classList.remove('hidden');
+                const q = this.sessionData.quiz; document.getElementById('qQuestion').textContent = q.question;
+                const opts = document.getElementById('qOptions'); opts.innerHTML = '';
+                q.options.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-100 bg-white font-bold text-slate-600 transition-all active:scale-95";
+                    b.textContent = o;
+                    b.onclick = () => { if(o === q.answer){ b.classList.add('border-pink-500','bg-pink-50'); setTimeout(()=>this.showRes(), 500); } else { b.classList.add('animate-shake','border-rose-500'); } };
+                    opts.appendChild(b);
+                });
             },
 
-            showResult() {
-                clearInterval(this.timerInt);
-                this.mode = 'result';
-                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+            showRes() {
+                clearInterval(this.ti); document.getElementById('quizUI').classList.add('hidden');
                 document.getElementById('resultUI').classList.remove('hidden');
-                document.getElementById('modeIndicator').textContent = "완료";
-                
-                const elapsed = 180 - this.timer;
-                document.getElementById('resultTime').textContent = `Time: ${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
-                
-                this.history[this.currentKey] = true;
-                localStorage.setItem('literacy_history', JSON.stringify(this.history));
-                this.ri();
+                const elap = 180 - this.timer; document.getElementById('resultTime').textContent = `${Math.floor(elap/60)}분 ${elap%60}초`;
+                this.history[this.currentKey] = true; localStorage.setItem('lit_hist', JSON.stringify(this.history));
             },
 
-            ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; this.isSwiping = false; },
-            te(e) {
-                const dx = e.changedTouches[0].screenX - this.tx;
-                const dy = e.changedTouches[0].screenY - this.ty;
-                if(Math.abs(dx) > 60 && Math.abs(dy) < 100 && this.mode === 'study') { this.isSwiping = true; if(dx > 0) this.navCard(-1); else this.navCard(1); }
-            },
-            confirmExit() { document.getElementById('exitModal').classList.remove('hidden'); },
-            exitNow() { clearInterval(this.timerInt); document.getElementById('exitModal').classList.add('hidden'); document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
-            resetHistory() { if(confirm("기록을 삭제할까요?")) { localStorage.removeItem('literacy_history'); location.reload(); } },
-            ri() { if(window.lucide) window.lucide.createIcons(); }
+            ts(e){this.x=e.touches[0].clientX;},
+            te(e){const d=e.changedTouches[0].clientX-this.x; if(Math.abs(d)>50) this.navCard(d>0?-1:1);},
+            confirmExit(){document.getElementById('exitModal').classList.remove('hidden');},
+            exitNow(){clearInterval(this.ti); location.reload();},
+            resetHistory(){if(confirm("초기화할까요?")){localStorage.removeItem('lit_hist'); location.reload();}},
+            ri(){if(window.lucide)lucide.createIcons();}
         };
         window.onload = () => app.init();
     </script>
