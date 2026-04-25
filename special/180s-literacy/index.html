@@ -155,25 +155,35 @@
             async loadData() {
                 try {
                     let allData = [];
-                    // 🚨 제한을 999까지 늘림 (파일이 없으면 알아서 멈춤)
+                    let emptyCount = 0; // 파일 없는 횟수 연속 카운트
+                    
                     for(let i=1; i<=999; i++) {
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
                         try {
                             const res = await fetch(fileName);
                             if(res.ok) {
-                                const json = await res.json();
-                                // 하위 호환성: level 데이터가 없는 예전 파일은 기본 'high' 적용
-                                json.forEach(item => { if(!item.level) item.level = 'high'; });
-                                allData = allData.concat(json);
+                                emptyCount = 0; // 정상 로드 시 카운트 초기화
+                                try {
+                                    const json = await res.json();
+                                    // 예전 포맷 호환용 (level 없으면 high)
+                                    json.forEach(item => { if(!item.level) item.level = 'high'; });
+                                    allData = allData.concat(json);
+                                } catch(parseErr) {
+                                    // JSON 문법 에러 감지!
+                                    alert(`🚨 에러 발견: ${fileName} 파일에 쉼표(,)나 괄호 오타가 있습니다! 수정해주세요.`);
+                                    console.error(`${fileName} 파싱 에러:`, parseErr);
+                                }
                             } else {
-                                break; // 404 에러 나면 더 이상 파일이 없는 것으로 간주하고 정지
+                                emptyCount++;
+                                // 파일이 3번 연속으로 없으면 검색 완전 종료
+                                if(emptyCount >= 3) break; 
                             }
                         } catch(err) { break; }
                     }
                     this.fullDb = allData;
                     
-                    // JSON 파일에서 고유 주제(Topic)들을 추출해서 셀렉트 박스에 동적 추가
-                    const uniqueTopics = [...new Set(this.fullDb.map(item => item.topic))];
+                    // 토픽 필터 동적 생성
+                    const uniqueTopics = [...new Set(this.fullDb.map(item => item.topic))].filter(Boolean);
                     const topicSelect = document.getElementById('filterTopic');
                     uniqueTopics.forEach(t => {
                         const opt = document.createElement('option');
@@ -207,7 +217,7 @@
                 let completedCount = 0;
 
                 this.filteredDb.forEach((item, i) => {
-                    // 🚨 순서가 바뀌어도 클리어 기록이 꼬이지 않도록, '지문 제목'을 고유 키로 사용
+                    // 고유 키를 title로 사용하여 필터링 후에도 클리어 기록 유지
                     const key = `lit_${item.title}`;
                     const done = this.history[key];
                     if(done) completedCount++;
@@ -216,7 +226,6 @@
                     card.className = "bg-white p-5 rounded-[2.2rem] border border-pink-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]";
                     card.onclick = () => this.startSession(item, i+1, key);
                     
-                    // 난이도 라벨 (M = Middle, H = High)
                     const lvlLabel = item.level === 'middle' ? 'M' : 'H';
 
                     card.innerHTML = `
@@ -332,7 +341,6 @@
                 const elapsed = 180 - this.timer;
                 document.getElementById('resultTime').textContent = `Time: ${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
                 
-                // 고유 키로 저장
                 this.history[this.currentKey] = true;
                 localStorage.setItem('literacy_history', JSON.stringify(this.history));
                 this.ri();
