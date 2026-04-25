@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ASMR 오디오 단어장 | AudioRoot - Knowledge Root</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #0f172a; -webkit-tap-highlight-color: transparent; overflow: hidden; color: #f8fafc; }
+        
+        .btn-active:active { transform: scale(0.92); }
+        
+        /* 음악 플레이어 디스크 애니메이션 */
+        .disc { width: 240px; height: 240px; border-radius: 50%; background: linear-gradient(135deg, #1e293b, #020617); box-shadow: 0 0 40px rgba(99, 102, 241, 0.2), inset 0 0 20px rgba(0,0,0,0.5); border: 2px solid #334155; position: relative; display: flex; justify-content: center; align-items: center; }
+        .disc::before { content: ''; position: absolute; width: 60px; height: 60px; border-radius: 50%; background: #0f172a; border: 2px solid #334155; }
+        
+        .spin { animation: spin 10s linear infinite; }
+        .spin-paused { animation-play-state: paused; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* 배경 오로라/별빛 효과 */
+        .aurora { position: absolute; top: -10%; left: -10%; width: 300px; height: 300px; background: rgba(99, 102, 241, 0.15); filter: blur(100px); border-radius: 50%; z-index: -1; animation: float 8s ease-in-out infinite; }
+        .aurora2 { position: absolute; bottom: 10%; right: -10%; width: 250px; height: 250px; background: rgba(168, 85, 247, 0.1); filter: blur(90px); border-radius: 50%; z-index: -1; animation: float 10s ease-in-out infinite reverse; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+
+        /* 진행률 바 */
+        .progress-bar-container { width: 100%; height: 6px; background: #334155; border-radius: 4px; overflow: hidden; cursor: pointer; }
+        .progress-bar { height: 100%; background: #818cf8; transition: width 0.3s linear; width: 0%; }
+        
+        /* ASMR 토글 버튼 */
+        .asmr-btn { transition: all 0.3s; }
+        .asmr-btn.active { background-color: #4f46e5; color: white; border-color: #6366f1; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+    </style>
+</head>
+<body class="flex flex-col select-none" onclick="app.initAudio()">
+
+    <div class="aurora"></div>
+    <div class="aurora2"></div>
+
+    <header class="border-b border-slate-800 shrink-0 px-4 py-4 relative z-40 bg-slate-900/50 backdrop-blur-md">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-500/20 p-2 rounded-xl border border-indigo-500/30"><i data-lucide="headphones" class="text-indigo-400 w-5 h-5"></i></div>
+                <h1 class="text-xl font-black tracking-tight">ASMR <span class="text-indigo-400">오디오</span></h1>
+            </div>
+            <button onclick="window.location.href='../../index.html'" class="p-2.5 rounded-xl bg-slate-800 text-slate-400 btn-active hover:text-indigo-400 transition-colors">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-between p-6 max-w-md mx-auto w-full relative z-10">
+        
+        <div class="flex-1 flex flex-col items-center justify-center w-full mt-4">
+            <div class="mb-10 relative">
+                <div id="disc" class="disc spin spin-paused"></div>
+                <div id="statusBadge" class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-800 border border-slate-700 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase shadow-lg">Paused</div>
+            </div>
+            
+            <div class="text-center w-full min-h-[120px] flex flex-col justify-center">
+                <h2 id="currentWord" class="text-5xl font-black tracking-tighter mb-2 drop-shadow-md">Loading...</h2>
+                <p id="currentPron" class="text-slate-400 italic mb-4 font-medium"></p>
+                <p id="currentMeaning" class="text-2xl font-bold text-indigo-300"></p>
+            </div>
+        </div>
+
+        <div class="w-full bg-slate-800/60 backdrop-blur-lg p-6 rounded-[2.5rem] border border-slate-700 shadow-2xl mb-4">
+            
+            <div class="mb-6">
+                <div class="flex justify-between text-[11px] font-bold text-slate-400 mb-2 font-mono">
+                    <span id="currentIndexTxt">0 / 0</span>
+                    <span id="playModeTxt" class="text-indigo-400 uppercase tracking-widest">Auto Play</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-6 mb-8">
+                <button onclick="app.prevWord()" class="p-3 text-slate-300 btn-active hover:text-white"><i data-lucide="skip-back" class="w-8 h-8 fill-current"></i></button>
+                <button id="playPauseBtn" onclick="app.togglePlay()" class="w-20 h-20 flex items-center justify-center bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)] text-white btn-active">
+                    <i data-lucide="play" class="w-8 h-8 fill-current ml-1" id="playIcon"></i>
+                </button>
+                <button onclick="app.nextWord()" class="p-3 text-slate-300 btn-active hover:text-white"><i data-lucide="skip-forward" class="w-8 h-8 fill-current"></i></button>
+            </div>
+
+            <div>
+                <p class="text-center text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">백색소음 (ASMR)</p>
+                <div class="flex justify-center gap-3">
+                    <button id="asmr-none" onclick="app.setAsmr('none')" class="asmr-btn active flex-1 py-3 bg-slate-700/50 border border-slate-600 rounded-2xl text-xs font-bold text-slate-300 flex flex-col items-center gap-1.5 btn-active">
+                        <i data-lucide="volume-x" class="w-5 h-5"></i> 끄기
+                    </button>
+                    <button id="asmr-rain" onclick="app.setAsmr('rain')" class="asmr-btn flex-1 py-3 bg-slate-700/50 border border-slate-600 rounded-2xl text-xs font-bold text-slate-300 flex flex-col items-center gap-1.5 btn-active">
+                        <i data-lucide="cloud-rain" class="w-5 h-5"></i> 빗소리
+                    </button>
+                    <button id="asmr-fire" onclick="app.setAsmr('fire')" class="asmr-btn flex-1 py-3 bg-slate-700/50 border border-slate-600 rounded-2xl text-xs font-bold text-slate-300 flex flex-col items-center gap-1.5 btn-active">
+                        <i data-lucide="flame" class="w-5 h-5"></i> 모닥불
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <audio id="audioRain" loop src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Rain_sounds_on_window.ogg"></audio>
+    <audio id="audioFire" loop src="https://upload.wikimedia.org/wikipedia/commons/6/67/Fire_cracking_and_popping.ogg"></audio>
+
+    <script>
+        const app = {
+            db: [], idx: 0, isPlaying: false,
+            audioUnlocked: false, ttsVoiceEn: null, ttsVoiceKo: null,
+            playTimeout: null, currentAsmr: 'none',
+
+            async init() {
+                if(window.lucide) window.lucide.createIcons();
+                this.setupTTS();
+                await this.loadData();
+            },
+
+            setupTTS() {
+                if('speechSynthesis' in window) {
+                    const setVoices = () => {
+                        const voices = window.speechSynthesis.getVoices();
+                        this.ttsVoiceEn = voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en')) || null;
+                        this.ttsVoiceKo = voices.find(v => v.lang.startsWith('ko-KR')) || voices.find(v => v.lang.startsWith('ko')) || null;
+                    };
+                    window.speechSynthesis.onvoiceschanged = setVoices;
+                    setVoices();
+                }
+            },
+
+            initAudio() {
+                // 모바일 브라우저 자동 재생 정책 방지용
+                if(!this.audioUnlocked && 'speechSynthesis' in window) {
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                    document.getElementById('audioRain').play().then(()=>document.getElementById('audioRain').pause()).catch(e=>{});
+                    document.getElementById('audioFire').play().then(()=>document.getElementById('audioFire').pause()).catch(e=>{});
+                    this.audioUnlocked = true;
+                }
+            },
+
+            async loadData() {
+                try {
+                    // VocaRoot의 데이터를 재사용 (폴더 경로 맞춰서 로드)
+                    const res = await fetch('../../lang/voca/data_part1.json');
+                    if(res.ok) {
+                        const json = await res.json();
+                        this.db = Array.isArray(json) ? json : (json.words || []);
+                    }
+                    
+                    // 데이터 로드 실패 시 내장 더미 데이터 사용
+                    if(this.db.length === 0) {
+                        this.db = [
+                            { word: "relax", pronunciation: "[rɪˈlæks]", meaning: "긴장을 풀다, 휴식하다" },
+                            { word: "breathe", pronunciation: "[briːð]", meaning: "숨을 쉬다, 호흡하다" },
+                            { word: "focus", pronunciation: "[ˈfoʊkəs]", meaning: "집중하다, 초점을 맞추다" },
+                            { word: "absorb", pronunciation: "[əbˈzɔːrb]", meaning: "흡수하다, 받아들이다" },
+                            { word: "memory", pronunciation: "[ˈmeməri]", meaning: "기억, 기억력" }
+                        ];
+                    }
+                    
+                    this.updateUI();
+                } catch(e) {
+                    document.getElementById('currentWord').textContent = "Data Error";
+                }
+            },
+
+            updateUI() {
+                if(this.db.length === 0) return;
+                const w = this.db[this.idx];
+                
+                document.getElementById('currentWord').textContent = w.word;
+                document.getElementById('currentPron').textContent = w.pronunciation || "";
+                document.getElementById('currentMeaning').textContent = w.meaning;
+                
+                document.getElementById('currentIndexTxt').textContent = `${this.idx + 1} / ${this.db.length}`;
+                document.getElementById('progressBar').style.width = `${((this.idx + 1) / this.db.length) * 100}%`;
+            },
+
+            togglePlay() {
+                this.isPlaying = !this.isPlaying;
+                const disc = document.getElementById('disc');
+                const badge = document.getElementById('statusBadge');
+                
+                if(this.isPlaying) {
+                    document.getElementById('playPauseBtn').innerHTML = '<i data-lucide="pause" class="w-8 h-8 fill-current"></i>';
+                    disc.classList.remove('spin-paused');
+                    badge.textContent = 'Playing';
+                    badge.classList.replace('text-indigo-400', 'text-emerald-400');
+                    this.playSequence();
+                } else {
+                    document.getElementById('playPauseBtn').innerHTML = '<i data-lucide="play" class="w-8 h-8 fill-current ml-1"></i>';
+                    disc.classList.add('spin-paused');
+                    badge.textContent = 'Paused';
+                    badge.classList.replace('text-emerald-400', 'text-indigo-400');
+                    window.speechSynthesis.cancel();
+                    clearTimeout(this.playTimeout);
+                }
+                if(window.lucide) window.lucide.createIcons();
+            },
+
+            playSequence() {
+                if(!this.isPlaying) return;
+                window.speechSynthesis.cancel();
+                clearTimeout(this.playTimeout);
+
+                const w = this.db[this.idx];
+                
+                // 1. 영어 단어 읽기
+                const utEn = new SpeechSynthesisUtterance(w.word);
+                if(this.ttsVoiceEn) utEn.voice = this.ttsVoiceEn;
+                utEn.lang = 'en-US';
+                utEn.rate = 0.8;
+                
+                // 2. 한국어 뜻 읽기
+                const utKo = new SpeechSynthesisUtterance(w.meaning);
+                if(this.ttsVoiceKo) utKo.voice = this.ttsVoiceKo;
+                utKo.lang = 'ko-KR';
+                utKo.rate = 0.9;
+
+                // 시퀀스 실행
+                utEn.onend = () => {
+                    this.playTimeout = setTimeout(() => {
+                        window.speechSynthesis.speak(utKo);
+                    }, 800); // 단어와 뜻 사이 0.8초 쉬기
+                };
+
+                utKo.onend = () => {
+                    this.playTimeout = setTimeout(() => {
+                        this.nextWord();
+                        if(this.isPlaying) this.playSequence();
+                    }, 2500); // 다음 단어 넘어가기 전 2.5초 쉬기 (ASMR 감상)
+                };
+
+                window.speechSynthesis.speak(utEn);
+            },
+
+            nextWord() {
+                this.idx++;
+                if(this.idx >= this.db.length) this.idx = 0; // 끝까지 가면 처음으로 루프
+                this.updateUI();
+                if(this.isPlaying && !window.speechSynthesis.speaking) this.playSequence();
+            },
+
+            prevWord() {
+                this.idx--;
+                if(this.idx < 0) this.idx = this.db.length - 1;
+                this.updateUI();
+                if(this.isPlaying && !window.speechSynthesis.speaking) this.playSequence();
+            },
+
+            setAsmr(type) {
+                this.currentAsmr = type;
+                const rain = document.getElementById('audioRain');
+                const fire = document.getElementById('audioFire');
+                
+                // UI 업데이트
+                ['none', 'rain', 'fire'].forEach(t => {
+                    document.getElementById(`asmr-${t}`).classList.remove('active');
+                });
+                document.getElementById(`asmr-${type}`).classList.add('active');
+
+                // 오디오 컨트롤
+                rain.pause(); fire.pause();
+                
+                // 볼륨 조절 (단어 소리가 잘 들리도록 배경음은 작게)
+                rain.volume = 0.4; fire.volume = 0.5;
+
+                if(type === 'rain') { rain.currentTime = 0; rain.play().catch(e=>console.log(e)); }
+                else if(type === 'fire') { fire.currentTime = 0; fire.play().catch(e=>console.log(e)); }
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
