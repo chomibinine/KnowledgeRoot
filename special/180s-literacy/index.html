@@ -56,7 +56,7 @@
             <div class="mb-5 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-pink-100 shadow-sm">
                 <div>
                     <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">학습 현황</h2>
-                    <span id="wordCountLabel" class="text-[11px] font-bold text-pink-600 uppercase tracking-widest mt-2 block">지문 로드 중...</span>
+                    <span id="wordCountLabel" class="text-[11px] font-bold text-pink-600 uppercase tracking-widest mt-2 block">지문 스캔 중...</span>
                 </div>
                 <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
             </div>
@@ -74,7 +74,7 @@
                     <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
                     <select id="filterTopic" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
                         <option value="all">모든 분야</option>
-                        </select>
+                    </select>
                 </div>
             </div>
 
@@ -154,44 +154,42 @@
             
             async loadData() {
                 try {
-                    let allData = [];
-                    let emptyCount = 0; 
-                    const cacheBuster = new Date().getTime(); // 캐시 무시 (항상 최신)
+                    const cacheBuster = new Date().getTime();
+                    const promises = [];
                     
-                    for(let i=1; i<=999; i++) {
-                        const file0X = `./literacy_${String(i).padStart(2, '0')}.json`;
-                        
-                        try {
-                            // 파일 찾기 시도
-                            let res = await fetch(`${file0X}?v=${cacheBuster}`);
-                            
-                            if(res.ok) {
-                                emptyCount = 0; // 찾으면 카운트 리셋
+                    // 🚀 1번부터 50번 파일까지 동시에 요청 발사! (중간에 없어도 무시)
+                    for(let i=1; i<=50; i++) {
+                        const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
+                        promises.push(
+                            fetch(`${fileName}?v=${cacheBuster}`)
+                            .then(res => res.ok ? res.text() : null)
+                            .then(text => {
+                                if(!text) return null;
                                 try {
-                                    const json = await res.json();
-                                    // 구버전 파일(level 없는 것) 호환
+                                    const json = JSON.parse(text);
                                     json.forEach(item => { if(!item.level) item.level = 'high'; });
-                                    allData = allData.concat(json);
-                                } catch(parseErr) {
-                                    alert(`🚨 에러: ${file0X} 파일에 오타가 있습니다!`);
-                                    console.error(parseErr);
+                                    return json;
+                                } catch(err) {
+                                    console.error(`${fileName} 파싱 에러:`, err);
+                                    return null;
                                 }
-                            } else {
-                                emptyCount++;
-                                // 10번 연속으로 파일이 없으면 진짜 끝난 것으로 간주
-                                if(emptyCount >= 10) break; 
-                            }
-                        } catch(err) { 
-                            // 통신 에러가 나도 멈추지 않고 다음 파일로 넘어감
-                            console.error("Fetch error:", err);
-                            emptyCount++;
-                            if(emptyCount >= 10) break;
-                            continue; 
-                        }
+                            })
+                            .catch(err => null)
+                        );
                     }
+
+                    // 모든 요청이 끝날 때까지 기다렸다가 정상 데이터만 병합
+                    const results = await Promise.all(promises);
+                    let allData = [];
+                    results.forEach(data => {
+                        if(data && Array.isArray(data)) {
+                            allData = allData.concat(data);
+                        }
+                    });
+
                     this.fullDb = allData;
                     
-                    // 셀렉트 박스 카테고리 자동 생성
+                    // 토픽 필터 생성
                     const uniqueTopics = [...new Set(this.fullDb.map(item => item.topic))].filter(Boolean);
                     const topicSelect = document.getElementById('filterTopic');
                     topicSelect.innerHTML = '<option value="all">모든 분야</option>'; 
@@ -227,7 +225,6 @@
                 let completedCount = 0;
 
                 this.filteredDb.forEach((item, i) => {
-                    // 고유 키를 title로 사용하여 필터링 후에도 클리어 기록 유지
                     const key = `lit_${item.title}`;
                     const done = this.history[key];
                     if(done) completedCount++;
