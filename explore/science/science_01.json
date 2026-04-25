@@ -1,0 +1,121 @@
+[
+  {
+    "id": 1,
+    "category": "biology",
+    "term": "미토콘드리아",
+    "origin": "Mitochondria",
+    "definition": "세포 호흡을 통해 에너지를 생산하는 세포 소기관",
+    "roots": [
+      { "text": "mitos", "mean": "실 (Thread)" },
+      { "text": "chondrion", "mean": "알갱이 (Granule)" }
+    ],
+    "explanation": "초기 현미경으로 세포를 관찰했을 때, 실처럼 길쭉하거나 알갱이처럼 생긴 구조물이 보여서 붙여진 이름입니다. 세포 내에서 에너지를 만드는 '발전소' 역할을 수행합니다."
+  },
+  {
+    "id": 2,
+    "category": "physics",
+    "term": "엔트로피",
+    "origin": "Entropy",
+    "definition": "에너지가 흐르는 방향과 무질서도를 나타내는 척도",
+    "roots": [
+      { "text": "en-", "mean": "안으로 (in)" },
+      { "text": "trope", "mean": "변화, 돌아서다 (turn)" }
+    ],
+    "explanation": "클라우지우스가 '에너지가 내부적으로 변화하는 성질'을 뜻하기 위해 만든 단어입니다. 자연 상태에서는 항상 질서에서 무질서한 방향으로 엔트로피가 증가하게 됩니다."
+  },
+  {
+    "id": 3,
+    "category": "biology",
+    "term": "항상성",
+    "origin": "Homeostasis",
+    "definition": "체온이나 혈당 등 생물체의 내부 환경을 일정하게 유지하려는 성질",
+    "roots": [
+      { "text": "homeo", "mean": "비슷한 (similar)" },
+      { "text": "stasis", "mean": "정지, 상태 (standing)" }
+    ],
+    "explanation": "외부 환경이 변하더라도 생물체 내부 상태(stasis)를 항상 비슷하게(homeo) 유지하려는 생명 현상의 핵심 원리입니다."
+  },
+  {
+    "id": 4,
+    "category": "chemistry",
+    "term": "산화",
+    "origin": "Oxidation",
+    "definition": "어떤 물질이 산소를 얻거나 전자를 잃는 반응",
+    "roots": [
+      { "text": "oxys", "mean": "시다, 산 (acid/sharp)" },
+      { "text": "gen-", "mean": "생성하다 (produce)" }
+    ],
+    "explanation": "산소(Oxygen)와 결합하는 반응에서 유래했습니다. 고대에는 산소가 신맛(acid)을 만드는 원소라고 생각했기 때문에 산소와 결합하여 성질이 변하는 것을 산화라고 부르게 되었습니다."
+  },
+  {
+    "id": 5,
+    "category": "earth",
+    "term": "대기권",
+    "origin": "Atmosphere",
+    "definition": "천체를 둘러싸고 있는 가스층",
+    "roots": [
+      { "text": "atmos", "mean": "증기 (vapor)" },
+      { "text": "sphaira", "mean": "구체, 공 (sphere)" }
+    ],
+    "explanation": "지구라는 둥근 공(sphere)을 수증기나 기체(vapor)가 감싸고 있다는 뜻입니다. 고도에 따라 대류권, 성층권 등으로 나뉩니다."
+  },
+  {
+    "id": 6,
+    "category": "biology",
+    "term": "광합성",
+    "origin": "Photosynthesis",
+    "definition": "빛을 이용하여 무기물로부터 유기물을 합성하는 과정",
+    "roots": [
+      { "text": "photo", "mean": "빛 (light)" },
+      { "text": "synthesis", "mean": "합성, 조합 (putting together)" }
+    ],
+    "explanation": "빛(photo)을 이용해 필요한 영양소를 조립하고 만든다(synthesis)는 의미입니다. 식물이 태양 에너지를 화학 에너지로 바꾸는 기적 같은 과정입니다."
+  },
+  {
+    "id": 7,
+    "category": "physics",
+    "term": "관성",
+    "origin": "Inertia",
+    "definition": "물체가 자신의 운동 상태를 그대로 유지하려는 성질",
+    "roots": [
+      { "text": "iners", "mean": "기술이 없는, 게으른 (idle/lazy)" }
+    ],
+    "explanation": "라틴어 '게으름'에서 유래했습니다. 외부에서 힘을 가하지 않으면 물체가 스스로 운동 상태를 바꾸려 하지 않고 '게으르게' 가만히 있으려 한다는 비유가 담겨 있습니다."
+  },
+  {
+    "id": 8,
+    "category": "chemistry",
+    "term": "동위원소",
+    "origin": "Isotope",
+    "definition": "원자 번호는 같지만 질량수가 다른 원소",
+    "roots": [
+      { "text": "iso-", "mean": "같은 (equal)" },
+      { "text": "topos", "mean": "장소 (place)" }
+    ],
+    "explanation": "주기율표에서 '같은(iso) 장소(topos)'를 차지하고 있는 원소라는 뜻입니다. 화학적 성질은 같지만 중성자 수가 달라 물리적 성격만 차이가 납니다."
+  },
+  {
+    "id": 9,
+    "category": "earth",
+    "term": "성층권",
+    "origin": "Stratosphere",
+    "definition": "대기권 중 대류권 위에서 고도 50km까지의 층",
+    "roots": [
+      { "text": "stratus", "mean": "층, 펼쳐진 것 (layer)" },
+      { "text": "sphaira", "mean": "구체 (sphere)" }
+    ],
+    "explanation": "공기가 아래위로 섞이지 않고 차곡차곡 층(layer)을 이루고 있는 구간입니다. 오존층이 있어 자외선을 차단해주는 아주 중요한 역할을 합니다."
+  },
+  {
+    "id": 10,
+    "category": "biology",
+    "term": "항체",
+    "origin": "Antibody",
+    "definition": "항원에 대항하기 위해 혈액 내에서 생성되는 면역 단백질",
+    "roots": [
+      { "text": "anti-", "mean": "반대, 대항 (against)" },
+      { "text": "body", "mean": "물질 (substance/corpus)" }
+    ],
+    "explanation": "외부에서 들어온 침입자인 항원(Antigen)에 맞서 싸우기 위해 우리 몸이 만들어낸 '대항하는(anti) 물질(body)'이라는 직관적인 이름입니다."
+  }
+]
