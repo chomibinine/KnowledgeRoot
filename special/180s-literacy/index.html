@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>180초 문해력 | LiteracyRoot - Knowledge Root</title>
+    <title>180초 문해력 Pro | LiteracyRoot - Knowledge Root</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -25,14 +25,8 @@
         .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; transition: transform 0.3s ease-in; }
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
         @keyframes slideIn { from { transform: scale(0.9) translateY(40px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-6px); }
-            75% { transform: translateX(6px); }
-        }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
         .animate-shake { animation: shake 0.3s ease-in-out; }
-
         .timer-critical { color: #e11d48; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -59,13 +53,31 @@
 
     <main id="mainDashboard" class="flex-1 overflow-y-auto p-4 pb-24">
         <div class="max-w-4xl mx-auto">
-            <div class="mb-6 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-pink-100 shadow-sm">
+            <div class="mb-5 flex items-center justify-between bg-white p-6 rounded-[2.2rem] border border-pink-100 shadow-sm">
                 <div>
-                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">0% 돌파</h2>
+                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">학습 현황</h2>
                     <span id="wordCountLabel" class="text-[11px] font-bold text-pink-600 uppercase tracking-widest mt-2 block">지문 로드 중...</span>
                 </div>
                 <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
             </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">난이도</p>
+                    <select id="filterLevel" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">전체 난이도</option>
+                        <option value="middle">중학 수준</option>
+                        <option value="high">고등 수준</option>
+                    </select>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-1.5 text-center tracking-widest">분야</p>
+                    <select id="filterTopic" onchange="app.applyFilters()" class="w-full bg-transparent font-black text-[15px] outline-none text-center text-slate-700">
+                        <option value="all">모든 분야</option>
+                        </select>
+                </div>
+            </div>
+
             <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </div>
     </main>
@@ -74,7 +86,7 @@
         <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
             <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
             <div class="text-center">
-                <span id="sessionDayLabel" class="text-[10px] font-black text-pink-600 uppercase tracking-widest">CHAPTER 01</span>
+                <span id="sessionDayLabel" class="text-[10px] font-black text-pink-600 uppercase tracking-widest">CHAPTER</span>
                 <div class="flex bg-slate-100 p-0.5 rounded-lg mt-0.5">
                     <div class="px-4 py-1 text-[11px] font-black rounded-md bg-white shadow-sm text-pink-700" id="modeIndicator">독해 중</div>
                 </div>
@@ -88,6 +100,7 @@
                 <div id="cardWrapper" class="w-full slide-in">
                     <div class="literacy-card custom-scroll">
                         <div class="flex items-center gap-2 mb-6">
+                            <span id="lLevelTag" class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase border border-slate-200">LEVEL</span>
                             <span id="lTopicTag" class="px-3 py-1 bg-pink-50 text-pink-600 rounded-lg text-[10px] font-black uppercase border border-pink-100">TOPIC</span>
                         </div>
                         <p id="lContent" class="content-text flex-1"></p>
@@ -129,9 +142,9 @@
 
     <script>
         const app = {
-            db: [], history: {}, sessionCards: [], sessionIdx: 0,
+            fullDb: [], filteredDb: [], history: {}, sessionCards: [], sessionIdx: 0,
             mode: 'study', tx: 0, ty: 0, isSwiping: false, currentKey: '',
-            timer: 180, timerInt: null, startTime: 0,
+            timer: 180, timerInt: null, startTime: 0, isAns: false,
             
             async init() {
                 this.loadHistory();
@@ -142,16 +155,48 @@
             async loadData() {
                 try {
                     let allData = [];
-                    for(let i=1; i<=10; i++) {
+                    // 🚨 제한을 999까지 늘림 (파일이 없으면 알아서 멈춤)
+                    for(let i=1; i<=999; i++) {
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
-                        const res = await fetch(fileName);
-                        if(res.ok) allData = allData.concat(await res.json());
-                        else break;
+                        try {
+                            const res = await fetch(fileName);
+                            if(res.ok) {
+                                const json = await res.json();
+                                // 하위 호환성: level 데이터가 없는 예전 파일은 기본 'high' 적용
+                                json.forEach(item => { if(!item.level) item.level = 'high'; });
+                                allData = allData.concat(json);
+                            } else {
+                                break; // 404 에러 나면 더 이상 파일이 없는 것으로 간주하고 정지
+                            }
+                        } catch(err) { break; }
                     }
-                    this.db = allData;
-                    document.getElementById('wordCountLabel').textContent = `총 ${this.db.length}개의 지문 활성화`;
-                    this.renderGrid();
+                    this.fullDb = allData;
+                    
+                    // JSON 파일에서 고유 주제(Topic)들을 추출해서 셀렉트 박스에 동적 추가
+                    const uniqueTopics = [...new Set(this.fullDb.map(item => item.topic))];
+                    const topicSelect = document.getElementById('filterTopic');
+                    uniqueTopics.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t; opt.textContent = t;
+                        topicSelect.appendChild(opt);
+                    });
+
+                    this.applyFilters();
                 } catch(e) { console.error(e); }
+            },
+
+            applyFilters() {
+                const lvl = document.getElementById('filterLevel').value;
+                const top = document.getElementById('filterTopic').value;
+
+                this.filteredDb = this.fullDb.filter(item => {
+                    const matchLvl = (lvl === 'all' || item.level === lvl);
+                    const matchTop = (top === 'all' || item.topic === top);
+                    return matchLvl && matchTop;
+                });
+
+                document.getElementById('wordCountLabel').textContent = `검색된 지문: 총 ${this.filteredDb.length}개`;
+                this.renderGrid();
             },
             
             loadHistory() { const h = localStorage.getItem('literacy_history'); if(h) this.history = JSON.parse(h); },
@@ -159,23 +204,44 @@
             renderGrid() {
                 const grid = document.getElementById('daysGrid'); grid.innerHTML = '';
                 const frag = document.createDocumentFragment();
-                this.db.forEach((item, i) => {
-                    const key = `ch${i+1}`;
+                let completedCount = 0;
+
+                this.filteredDb.forEach((item, i) => {
+                    // 🚨 순서가 바뀌어도 클리어 기록이 꼬이지 않도록, '지문 제목'을 고유 키로 사용
+                    const key = `lit_${item.title}`;
                     const done = this.history[key];
+                    if(done) completedCount++;
+
                     const card = document.createElement('div');
-                    card.className = "bg-white p-6 rounded-[2.2rem] border border-pink-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden";
+                    card.className = "bg-white p-5 rounded-[2.2rem] border border-pink-100 shadow-sm active:scale-95 transition-all text-center cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]";
                     card.onclick = () => this.startSession(item, i+1, key);
-                    card.innerHTML = `${done ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}<div class="w-10 h-10 mx-auto bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 font-black text-xs mb-3">${i+1}</div><h3 class="font-black text-slate-800 text-sm mb-1">${item.title}</h3><p class="text-[9px] font-black text-pink-400 uppercase tracking-widest">${done ? 'Cleared' : 'Ready'}</p>`;
+                    
+                    // 난이도 라벨 (M = Middle, H = High)
+                    const lvlLabel = item.level === 'middle' ? 'M' : 'H';
+
+                    card.innerHTML = `
+                        ${done ? '<div class="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full"><i data-lucide="check" class="w-3 h-3"></i></div>' : ''}
+                        <div class="absolute top-3 left-3 bg-slate-100 text-slate-400 font-black text-[9px] px-2 py-0.5 rounded-md">${lvlLabel}</div>
+                        <div class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-1 rounded-md self-center mb-2 mt-2">${item.topic}</div>
+                        <h3 class="font-bold text-slate-800 text-sm mb-1 leading-snug word-keep-all">${item.title}</h3>
+                        <p class="text-[9px] font-black text-pink-400 uppercase tracking-widest mt-auto">${done ? 'Cleared' : 'Ready'}</p>
+                    `;
                     frag.appendChild(card);
                 });
                 grid.appendChild(frag);
-                document.getElementById('totalProgressText').textContent = `${Math.round((Object.keys(this.history).length / this.db.length) * 100 || 0)}% 돌파`;
+                
+                const pct = this.filteredDb.length > 0 ? Math.round((completedCount / this.filteredDb.length) * 100) : 0;
+                document.getElementById('totalProgressText').textContent = `분석률 ${pct}%`;
                 this.ri();
             },
 
             startSession(data, num, key) {
                 this.sessionCards = data.cards; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
                 this.sessionData = data;
+                
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
+                document.getElementById('studyUI').classList.remove('hidden');
+
                 document.getElementById('sessionLayer').classList.remove('hidden');
                 document.getElementById('sessionDayLabel').textContent = `Chapter ${num}`;
                 document.getElementById('sessionTotal').textContent = data.cards.length;
@@ -202,6 +268,7 @@
             renderStudy() {
                 const c = this.sessionCards[this.sessionIdx];
                 document.getElementById('sessionIdx').textContent = this.sessionIdx + 1;
+                document.getElementById('lLevelTag').textContent = this.sessionData.level === 'middle' ? '중학' : '고등';
                 document.getElementById('lTopicTag').textContent = this.sessionData.topic;
                 document.getElementById('lContent').textContent = c;
                 document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionCards.length - 1 ? "이해 확인" : "다음 카드";
@@ -225,22 +292,30 @@
 
             switchMode(m) {
                 this.mode = m;
-                document.getElementById('studyUI').classList.add('hidden');
-                document.getElementById('quizUI').classList.add('hidden');
-                document.getElementById('resultUI').classList.add('hidden');
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById(`${m}UI`).classList.remove('hidden');
+                
                 if(m === 'quiz') {
                     document.getElementById('modeIndicator').textContent = "이해 확인";
+                    this.isAns = false; 
                     const q = this.sessionData.quiz;
                     document.getElementById('qQuestion').textContent = q.question;
                     const cont = document.getElementById('qOptions'); cont.innerHTML = '';
                     q.options.forEach(opt => {
                         const b = document.createElement('button');
-                        b.className = "w-full text-left p-6 rounded-[1.5rem] border-2 border-slate-200 bg-white font-bold text-slate-700 text-lg transition-all";
+                        b.className = "w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-bold text-slate-700 text-base transition-all";
                         b.textContent = opt;
                         b.onclick = () => {
-                            if(opt === q.answer) { b.classList.replace('border-slate-200','border-pink-500'); b.classList.add('bg-pink-50'); setTimeout(()=>this.showResult(), 600); }
-                            else { b.classList.add('animate-shake', 'border-rose-500', 'bg-rose-50'); }
+                            if (this.isAns) return; 
+                            if(opt === q.answer) { 
+                                this.isAns = true;
+                                b.classList.replace('border-slate-200','border-pink-500'); 
+                                b.classList.add('bg-pink-50'); 
+                                setTimeout(()=>this.showResult(), 600); 
+                            }
+                            else { 
+                                b.classList.add('animate-shake', 'border-rose-500', 'bg-rose-50'); 
+                            }
                         };
                         cont.appendChild(b);
                     });
@@ -250,11 +325,14 @@
             showResult() {
                 clearInterval(this.timerInt);
                 this.mode = 'result';
-                document.getElementById('quizUI').classList.add('hidden');
+                ['studyUI', 'quizUI', 'resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById('resultUI').classList.remove('hidden');
                 document.getElementById('modeIndicator').textContent = "완료";
+                
                 const elapsed = 180 - this.timer;
                 document.getElementById('resultTime').textContent = `Time: ${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
+                
+                // 고유 키로 저장
                 this.history[this.currentKey] = true;
                 localStorage.setItem('literacy_history', JSON.stringify(this.history));
                 this.ri();
