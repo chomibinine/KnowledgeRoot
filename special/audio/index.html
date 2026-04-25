@@ -10,26 +10,17 @@
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #0f172a; -webkit-tap-highlight-color: transparent; color: #f8fafc; }
         .btn-active:active { transform: scale(0.92); }
-        
         .disc { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, #1e293b, #020617); box-shadow: 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 15px rgba(0,0,0,0.5); border: 2px solid #334155; position: relative; display: flex; justify-content: center; align-items: center; }
         .disc::before { content: ''; position: absolute; width: 34px; height: 34px; border-radius: 50%; background: #0f172a; border: 2px solid #334155; }
-        
         .spin { animation: spin 10s linear infinite; }
         .spin-paused { animation-play-state: paused; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
         .aurora { position: absolute; top: -10%; left: -10%; width: 300px; height: 300px; background: rgba(99, 102, 241, 0.15); filter: blur(100px); border-radius: 50%; z-index: -1; }
-        
-        /* cursor-pointer 추가하여 클릭 가능함을 표시 */
         .progress-bar-container { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; }
         .progress-bar { height: 100%; background: #818cf8; transition: width 0.2s linear; width: 0%; pointer-events: none; }
-        
         .asmr-btn { transition: all 0.3s; opacity: 0.6; }
         .asmr-btn.active { opacity: 1; background-color: #4f46e5; color: white; border-color: #6366f1; }
-
         select { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; font-size: 11px; padding: 4px 8px; outline: none; color: #94a3b8; font-weight: 800; }
-        select:focus { border-color: #6366f1; color: white; }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -64,19 +55,16 @@
                 <option value="root">기본순</option>
                 <option value="alpha">A-Z순</option>
             </select>
-            <select id="daySelect" onchange="app.loadDay()" class="text-indigo-400 border-indigo-500/30">
-                </select>
+            <select id="daySelect" onchange="app.loadDay()" class="text-indigo-400 border-indigo-500/30"></select>
         </div>
     </nav>
 
     <main class="flex-1 flex flex-col items-center justify-between p-4 max-w-md mx-auto w-full relative z-10 overflow-y-auto no-scrollbar">
-        
         <div class="flex flex-col items-center justify-center w-full mt-2">
             <div class="mb-3 relative">
                 <div id="disc" class="disc spin spin-paused"></div>
                 <div id="statusBadge" class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-[9px] font-black tracking-widest text-indigo-400 uppercase">Ready</div>
             </div>
-            
             <div class="text-center w-full min-h-[90px] flex flex-col justify-center">
                 <h2 id="currentWord" class="text-4xl font-black tracking-tighter mb-1 text-white">Loading...</h2>
                 <p id="currentPron" class="text-slate-500 italic mb-1 font-medium text-sm"></p>
@@ -125,8 +113,8 @@
         </div>
     </main>
 
-    <audio id="audioRain" loop src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Rain_sounds_on_window.ogg"></audio>
-    <audio id="audioFire" loop src="https://upload.wikimedia.org/wikipedia/commons/6/67/Fire_cracking_and_popping.ogg"></audio>
+    <audio id="audioRain" loop src="https://www.soundjay.com/nature/rain-01.mp3"></audio>
+    <audio id="audioFire" loop src="https://www.soundjay.com/household/fire-crackling-01.mp3"></audio>
 
     <script>
         const app = {
@@ -169,17 +157,13 @@
                 const lvl = document.getElementById('courseLevel').value;
                 const sort = document.getElementById('sortOrder').value;
                 const size = parseInt(document.getElementById('dailyAmount').value);
-
                 this.filteredDb = lvl === 'all' ? [...this.fullDb] : this.fullDb.filter(w => w.level === lvl);
                 if(sort === 'alpha') this.filteredDb.sort((a,b) => a.word.localeCompare(b.word));
-
                 const daySelect = document.getElementById('daySelect');
                 daySelect.innerHTML = '';
-                
                 const optAll = document.createElement('option');
                 optAll.value = 'all'; optAll.textContent = '전체 (수면 모드)';
                 daySelect.appendChild(optAll);
-
                 const dayCount = Math.ceil(this.filteredDb.length / size);
                 for(let d=1; d<=dayCount; d++) {
                     const opt = document.createElement('option');
@@ -191,9 +175,8 @@
 
             loadDay() {
                 const val = document.getElementById('daySelect').value;
-                if(val === 'all') {
-                    this.currentList = [...this.filteredDb];
-                } else {
+                if(val === 'all') this.currentList = [...this.filteredDb];
+                else {
                     const size = parseInt(document.getElementById('dailyAmount').value);
                     const day = parseInt(val) - 1;
                     this.currentList = this.filteredDb.slice(day * size, (day + 1) * size);
@@ -210,42 +193,32 @@
                 document.getElementById('currentPron').textContent = w.pronunciation || "";
                 document.getElementById('currentMeaning').textContent = w.meaning;
                 document.getElementById('currentIndexTxt').textContent = `${this.idx + 1} / ${this.currentList.length}`;
-                
-                // 진행바가 처음에는 0이 안 되도록 약간의 꼼수 추가
-                const progressPct = ((this.idx + 1) / this.currentList.length) * 100;
-                document.getElementById('progressBar').style.width = `${progressPct}%`;
+                document.getElementById('progressBar').style.width = `${((this.idx + 1) / this.currentList.length) * 100}%`;
             },
 
-            // ✨ 새로 추가된 재생바 탐색(Seek) 기능
             seekWord(event) {
                 if(!this.currentList.length) return;
                 const container = event.currentTarget;
                 const rect = container.getBoundingClientRect();
                 const clickX = event.clientX - rect.left;
                 const width = rect.width;
-                
-                // 클릭한 위치의 비율 (0 ~ 1)
-                let percentage = Math.max(0, Math.min(1, clickX / width));
-                
-                // 비율을 인덱스로 변환
-                let targetIdx = Math.floor(percentage * this.currentList.length);
-                if (targetIdx >= this.currentList.length) targetIdx = this.currentList.length - 1;
-                
-                this.idx = targetIdx;
+                let targetIdx = Math.floor((clickX / width) * this.currentList.length);
+                this.idx = Math.max(0, Math.min(this.currentList.length - 1, targetIdx));
                 this.updateUI();
-                
-                // 재생 중이었다면, 즉시 해당 단어부터 다시 읽기
-                if (this.isPlaying) {
-                    this.playSequence();
-                }
+                if (this.isPlaying) this.playSequence();
             },
 
+            // 🌟 권한 잠금 해제 로직 강화
             initAudioContext() {
                 if(!this.audioUnlocked) {
-                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                    // 무음 재생으로 브라우저 오디오 권한 획득
                     ['audioRain', 'audioFire'].forEach(id => {
                         const a = document.getElementById(id);
-                        a.play().then(()=>a.pause()).catch(e=>{});
+                        a.muted = true;
+                        a.play().then(() => {
+                            a.pause();
+                            a.muted = false;
+                        }).catch(e => console.log("Audio unlock failed", e));
                     });
                     this.audioUnlocked = true;
                 }
@@ -263,10 +236,6 @@
                 document.getElementById('disc').classList.remove('spin-paused');
                 document.getElementById('statusBadge').textContent = 'Playing';
                 document.getElementById('statusBadge').classList.replace('text-indigo-400', 'text-emerald-400');
-                
-                const val = document.getElementById('daySelect').value;
-                document.getElementById('statusTxt').textContent = val === 'all' ? 'Sleep Mode' : 'Auto Playing';
-                
                 if(window.lucide) window.lucide.createIcons();
                 this.playSequence();
             },
@@ -277,7 +246,6 @@
                 document.getElementById('disc').classList.add('spin-paused');
                 document.getElementById('statusBadge').textContent = 'Paused';
                 document.getElementById('statusBadge').classList.replace('text-emerald-400', 'text-indigo-400');
-                document.getElementById('statusTxt').textContent = 'Standby';
                 window.speechSynthesis.cancel();
                 clearTimeout(this.playTimeout);
                 if(window.lucide) window.lucide.createIcons();
@@ -286,42 +254,21 @@
             playSequence() {
                 if(!this.isPlaying) return;
                 window.speechSynthesis.cancel();
-                clearTimeout(this.playTimeout); // 이전 타이머 초기화
-
+                clearTimeout(this.playTimeout);
                 const w = this.currentList[this.idx];
-                
                 const utEn = new SpeechSynthesisUtterance(w.word);
                 if(this.ttsEn) utEn.voice = this.ttsEn;
                 utEn.lang = 'en-US'; utEn.rate = 0.8;
-
                 const utKo = new SpeechSynthesisUtterance(w.meaning);
                 if(this.ttsKo) utKo.voice = this.ttsKo;
                 utKo.lang = 'ko-KR'; utKo.rate = 0.9;
-
-                utEn.onend = () => {
-                    this.playTimeout = setTimeout(() => window.speechSynthesis.speak(utKo), 800);
-                };
-
-                utKo.onend = () => {
-                    this.playTimeout = setTimeout(() => {
-                        this.nextWord();
-                        if(this.isPlaying) this.playSequence();
-                    }, 3000);
-                };
+                utEn.onend = () => { this.playTimeout = setTimeout(() => window.speechSynthesis.speak(utKo), 800); };
+                utKo.onend = () => { this.playTimeout = setTimeout(() => { this.nextWord(); if(this.isPlaying) this.playSequence(); }, 3000); };
                 window.speechSynthesis.speak(utEn);
             },
 
-            nextWord() {
-                this.idx = (this.idx + 1) % this.currentList.length;
-                this.updateUI();
-                if(this.isPlaying && !window.speechSynthesis.speaking) this.playSequence();
-            },
-
-            prevWord() {
-                this.idx = (this.idx - 1 + this.currentList.length) % this.currentList.length;
-                this.updateUI();
-                if(this.isPlaying && !window.speechSynthesis.speaking) this.playSequence();
-            },
+            nextWord() { this.idx = (this.idx + 1) % this.currentList.length; this.updateUI(); },
+            prevWord() { this.idx = (this.idx - 1 + this.currentList.length) % this.currentList.length; this.updateUI(); },
 
             setAsmr(type) {
                 const r = document.getElementById('audioRain');
@@ -329,41 +276,26 @@
                 ['none', 'rain', 'fire'].forEach(t => document.getElementById(`asmr-${t}`).classList.remove('active'));
                 document.getElementById(`asmr-${type}`).classList.add('active');
                 r.pause(); f.pause();
-                if(type === 'rain') { r.volume = 0.3; r.play().catch(e=>{}); }
-                if(type === 'fire') { f.volume = 0.4; f.play().catch(e=>{}); }
+                if(type === 'rain') { r.volume = 0.3; r.play().catch(e=>alert("터치 후 재생 가능합니다.")); }
+                if(type === 'fire') { f.volume = 0.4; f.play().catch(e=>alert("터치 후 재생 가능합니다.")); }
             },
 
             toggleSleepTimer() {
                 const levels = [0, 15, 30, 60, 120];
-                let i = levels.indexOf(this.sleepTimerVal);
-                this.sleepTimerVal = levels[(i + 1) % levels.length];
-
+                this.sleepTimerVal = levels[(levels.indexOf(this.sleepTimerVal) + 1) % levels.length];
                 const btn = document.getElementById('sleepTimerBtn');
                 const txt = document.getElementById('sleepTimerTxt');
-                
                 clearTimeout(this.sleepTimeout);
-
                 if (this.sleepTimerVal === 0) {
-                    btn.classList.remove('text-indigo-400', 'border-indigo-500/50');
-                    btn.classList.add('text-slate-400', 'border-slate-600');
+                    btn.classList.replace('text-indigo-400', 'text-slate-400');
                     txt.textContent = '타이머 OFF';
                 } else {
-                    btn.classList.add('text-indigo-400', 'border-indigo-500/50');
-                    btn.classList.remove('text-slate-400', 'border-slate-600');
+                    btn.classList.replace('text-slate-400', 'text-indigo-400');
                     txt.textContent = `${this.sleepTimerVal}분 후 종료`;
-
-                    this.sleepTimeout = setTimeout(() => {
-                        this.stopPlay();
-                        this.setAsmr('none');
-                        this.sleepTimerVal = 0;
-                        btn.classList.remove('text-indigo-400', 'border-indigo-500/50');
-                        btn.classList.add('text-slate-400', 'border-slate-600');
-                        txt.textContent = '타이머 OFF';
-                    }, this.sleepTimerVal * 60 * 1000);
+                    this.sleepTimeout = setTimeout(() => { this.stopPlay(); this.setAsmr('none'); this.sleepTimerVal = 0; }, this.sleepTimerVal * 60 * 1000);
                 }
             }
         };
-
         window.onload = () => app.init();
     </script>
 </body>
