@@ -201,25 +201,18 @@
                 const container = event.currentTarget;
                 const rect = container.getBoundingClientRect();
                 const clickX = event.clientX - rect.left;
-                const width = rect.width;
-                let targetIdx = Math.floor((clickX / width) * this.currentList.length);
+                let targetIdx = Math.floor((clickX / rect.width) * this.currentList.length);
                 this.idx = Math.max(0, Math.min(this.currentList.length - 1, targetIdx));
                 this.updateUI();
                 if (this.isPlaying) this.playSequence();
             },
 
-            // 🌟 권한 잠금 해제 로직 강화
+            // 첫 화면 터치 시 음원 파일 미리 로드 (알림창 원인 해결)
             initAudioContext() {
                 if(!this.audioUnlocked) {
-                    // 무음 재생으로 브라우저 오디오 권한 획득
-                    ['audioRain', 'audioFire'].forEach(id => {
-                        const a = document.getElementById(id);
-                        a.muted = true;
-                        a.play().then(() => {
-                            a.pause();
-                            a.muted = false;
-                        }).catch(e => console.log("Audio unlock failed", e));
-                    });
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                    document.getElementById('audioRain').load();
+                    document.getElementById('audioFire').load();
                     this.audioUnlocked = true;
                 }
             },
@@ -236,6 +229,8 @@
                 document.getElementById('disc').classList.remove('spin-paused');
                 document.getElementById('statusBadge').textContent = 'Playing';
                 document.getElementById('statusBadge').classList.replace('text-indigo-400', 'text-emerald-400');
+                const val = document.getElementById('daySelect').value;
+                document.getElementById('statusTxt').textContent = val === 'all' ? 'Sleep Mode' : 'Auto Playing';
                 if(window.lucide) window.lucide.createIcons();
                 this.playSequence();
             },
@@ -246,6 +241,7 @@
                 document.getElementById('disc').classList.add('spin-paused');
                 document.getElementById('statusBadge').textContent = 'Paused';
                 document.getElementById('statusBadge').classList.replace('text-emerald-400', 'text-indigo-400');
+                document.getElementById('statusTxt').textContent = 'Standby';
                 window.speechSynthesis.cancel();
                 clearTimeout(this.playTimeout);
                 if(window.lucide) window.lucide.createIcons();
@@ -270,14 +266,15 @@
             nextWord() { this.idx = (this.idx + 1) % this.currentList.length; this.updateUI(); },
             prevWord() { this.idx = (this.idx - 1 + this.currentList.length) % this.currentList.length; this.updateUI(); },
 
+            // 에러 알림창(alert) 완전히 제거
             setAsmr(type) {
                 const r = document.getElementById('audioRain');
                 const f = document.getElementById('audioFire');
                 ['none', 'rain', 'fire'].forEach(t => document.getElementById(`asmr-${t}`).classList.remove('active'));
                 document.getElementById(`asmr-${type}`).classList.add('active');
                 r.pause(); f.pause();
-                if(type === 'rain') { r.volume = 0.3; r.play().catch(e=>alert("터치 후 재생 가능합니다.")); }
-                if(type === 'fire') { f.volume = 0.4; f.play().catch(e=>alert("터치 후 재생 가능합니다.")); }
+                if(type === 'rain') { r.volume = 0.3; r.play().catch(e => console.log("Audio loading...")); }
+                if(type === 'fire') { f.volume = 0.4; f.play().catch(e => console.log("Audio loading...")); }
             },
 
             toggleSleepTimer() {
