@@ -72,7 +72,7 @@
             <div class="mb-4 flex items-center justify-between bg-white p-5 rounded-[2rem] border border-pink-100 shadow-sm">
                 <div>
                     <h2 id="totalProgressText" class="text-xl font-black text-slate-900 leading-none">학습 현황</h2>
-                    <span id="wordCountLabel" class="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-1 block">지문 스캔 준비 중...</span>
+                    <span id="wordCountLabel" class="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-1 block">데이터 로드 중...</span>
                 </div>
                 <button onclick="app.resetHistory()" class="p-2 text-slate-200 active:text-rose-500 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
             </div>
@@ -174,35 +174,26 @@
             async loadData() {
                 try {
                     const cacheBuster = new Date().getTime();
-                    let allData = [];
-                    const statusLabel = document.getElementById('wordCountLabel');
+                    const promises = [];
                     
-                    // 🚨 트래픽 잼 방지: 하나씩 빠르고 안전하게 순차적으로 요청
+                    // 에러 팝업 없이 가장 빠르고 조용하게 50개 동시 요청 (결손 파일은 자동 패스)
                     for(let i=1; i<=50; i++) {
-                        statusLabel.textContent = `지문 안전 스캔 중... (${i}/50)`;
                         const fileName = `./literacy_${String(i).padStart(2, '0')}.json`;
-                        
-                        try {
-                            const res = await fetch(`${fileName}?v=${cacheBuster}`);
-                            if(res.ok) {
-                                const text = await res.text();
-                                try {
-                                    const json = JSON.parse(text);
-                                    json.forEach(item => { if(!item.level) item.level = 'high'; });
-                                    allData = allData.concat(json);
-                                } catch(err) {
-                                    console.error(`${fileName} 파싱 에러:`, err);
-                                    alert(`🚨 에러: ${fileName} 파일에 쉼표/대괄호 오타가 있습니다!`);
-                                }
-                            } else {
-                                // 파일이 없으면(404) 멈추지 않고 그냥 넘어감
-                                continue;
-                            }
-                        } catch(err) {
-                            // 네트워크 에러가 나도 멈추지 않고 넘어감
-                            continue;
-                        }
+                        promises.push(
+                            fetch(`${fileName}?v=${cacheBuster}`)
+                            .then(res => res.ok ? res.json() : null)
+                            .catch(() => null)
+                        );
                     }
+
+                    const results = await Promise.all(promises);
+                    let allData = [];
+                    results.forEach(json => {
+                        if(json && Array.isArray(json)) {
+                            json.forEach(item => { if(!item.level) item.level = 'high'; });
+                            allData = allData.concat(json);
+                        }
+                    });
 
                     this.fullDb = allData;
                     
